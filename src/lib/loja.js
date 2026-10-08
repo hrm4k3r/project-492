@@ -1,5 +1,6 @@
 export const LOJA = {
   nome: "Curadoria da Mesa",
+  cnpj: "64.606.408/0001-94",
   slogan: "Seleção de Sabores",
   whatsapp: "5535984265018",
   whatsappExibicao: "+55 (35) 98426-5018",

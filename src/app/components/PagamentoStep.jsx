@@ -22,7 +22,8 @@ const passos = [
   "Envie o comprovante pelo WhatsApp para confirmarmos mais rápido.",
 ];
 
-export default function PagamentoStep({ order }) {
+export default function PagamentoStep({ order, nivelTitulo = "h1" }) {
+  const Titulo = nivelTitulo;
   const [statusAtual, setStatusAtual] = useState(order.status);
   const [copiaECola, setCopiaECola] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
@@ -86,7 +87,7 @@ export default function PagamentoStep({ order }) {
     return (
       <div className="card-surface flex flex-col items-center gap-4 p-8 text-center md:p-12">
         <FontAwesomeIcon icon={faCircleCheck} className="text-5xl text-olive" />
-        <h1 className="font-display text-4xl font-medium text-primary">Pagamento confirmado!</h1>
+        <Titulo className="font-display text-4xl font-medium text-primary">Pagamento confirmado!</Titulo>
         <p className="max-w-sm text-primary/70">
           Recebemos seu pagamento do pedido #{codigoPedido}.{" "}
           {retirada
@@ -103,7 +104,7 @@ export default function PagamentoStep({ order }) {
       <div className="bg-brand px-6 py-8 text-center text-cream md:px-10">
         <Image src="/emblema-creme.png" width={246} height={233} alt="" className="mx-auto h-12 w-auto" />
         <p className="eyebrow mt-5 text-gold">Pedido #{codigoPedido} registrado</p>
-        <h1 className="mt-2 font-display text-4xl font-medium md:text-5xl">Falta só o pagamento</h1>
+        <Titulo className="mt-2 font-display text-4xl font-medium md:text-5xl">Falta só o pagamento</Titulo>
         <p className="mt-4 text-sm text-cream/70">Valor a pagar</p>
         <p className="font-display text-5xl font-semibold text-gold">{formatBRL(order.total)}</p>
         <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/40 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-cream/80">

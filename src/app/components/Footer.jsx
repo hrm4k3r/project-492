@@ -66,8 +66,9 @@ export default function Footer() {
       <div className="border-t border-gold/20 py-6">
         <div className="container-page flex flex-col items-center justify-between gap-3 text-center md:flex-row md:text-left">
           <p className="max-w-2xl text-xs leading-relaxed text-cream/60">
-            {LOJA.nome} &mdash; Todos os direitos reservados, {ano}. Venda
-            proibida para menores de 18 anos. Beba com moderação.
+            {LOJA.nome} &mdash; CNPJ {LOJA.cnpj} &mdash; Todos os direitos
+            reservados, {ano}. Venda proibida para menores de 18 anos. Beba com
+            moderação.
           </p>
           <div className="flex items-center gap-2">
             <p className="text-xs text-cream/60">Desenvolvido por</p>

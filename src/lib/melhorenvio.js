@@ -104,7 +104,7 @@ async function obterAccessTokenValido() {
 
 /**
  * Calcula opções de frete para um destino, a partir do CEP de origem
- * (fazenda) e uma lista de produtos (peso/dimensões).
+ * (loja) e uma lista de produtos (peso/dimensões).
  */
 export async function calcularFrete({ cepDestino, produtos }) {
   const accessToken = await obterAccessTokenValido();

@@ -74,7 +74,23 @@ body {
   }
 
   .prose-policy h2 {
-    @apply font-display text-xl text-primary md:text-2xl;
+    @apply mb-3 mt-12 font-display text-3xl font-semibold text-primary;
+  }
+
+  .prose-policy h3 {
+    @apply mb-2 mt-6 font-sans text-[13px] font-medium uppercase tracking-[0.16em] text-terracotta;
+  }
+
+  .prose-policy ul {
+    @apply mb-4 list-disc space-y-1.5 pl-5 text-primary/80;
+  }
+
+  .prose-policy a {
+    @apply font-medium text-terracotta underline;
+  }
+
+  .prose-policy strong {
+    @apply font-semibold text-primary;
   }
 }
 
