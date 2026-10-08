@@ -43,7 +43,7 @@ export function ProdutoCard({ produto }) {
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-primary/50">{origem}</p>
         )}
         <Link href={`/detalhes?id=${id}`}>
-          <h3 className="font-display text-lg text-primary transition-colors duration-300 hover:text-terracotta">
+          <h3 className="font-display text-[1.35rem] font-semibold leading-tight text-primary transition-colors duration-300 hover:text-terracotta">
             {titulo}
           </h3>
         </Link>

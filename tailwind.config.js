@@ -8,23 +8,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Paleta extraída do rótulo/logo da Fazenda Santo Antônio:
-        // casca do queijo (terracota), fita de premiação (bronze/ouro),
-        // painel de texto (carvão) e o creme do papel do rótulo.
-        light: '#FBF3E6', // creme do rótulo — fundo principal
-        cream: '#FBF3E6',
-        primary: '#2A1B14', // carvão amadeirado — texto, header, footer
-        ink: '#2A1B14',
-        secondary: '#C7A15A', // bronze/ouro da fita "Santo Antônio"
-        gold: '#C7A15A',
-        tertiary: '#BD5B2C', // terracota da casca do queijo — CTAs, preço
-        terracotta: '#BD5B2C',
-        olive: '#4B5A3A', // verde do pasto — selos naturais
-        cardBorder: '#EADFC9',
+        // Paleta da Curadoria da Mesa, extraída do logo: marrom do fundo
+        // (#5A2A14), creme das letras (#F7E3C5) e tons de madeira/âmbar
+        // das fotos. O briefing pede bege, branco e marrom.
+        brand: '#5A2A14', // marrom do logo — header, footer, faixas de destaque
+        light: '#F8F1E4', // bege — fundo principal
+        cream: '#F7E3C5', // creme do logo — texto sobre fundo marrom
+        primary: '#3A1B0D', // marrom profundo — texto e botões
+        ink: '#3A1B0D',
+        secondary: '#C9A36A',
+        gold: '#C9A36A', // champanhe — detalhes e filetes
+        tertiary: '#A4531C',
+        terracotta: '#A4531C', // cobre — preços e destaques
+        olive: '#5B6B3E',
+        cardBorder: '#E7D9C0',
+        sand: '#EFE3CE', // bege mais escuro — faixas alternadas
       },
       fontFamily: {
         display: ['var(--font-display)'],
         sans: ['var(--font-sans)'],
+        script: ['var(--font-script)'],
       },
       dropShadow: {
         dark: '0.35rem 0.35rem 0.2rem rgba(0, 0, 0, 0.8)',
@@ -32,8 +35,8 @@ module.exports = {
         dark1: '0rem 0rem 2rem #FFFFFF',
       },
       boxShadow: {
-        card: '0 8px 30px -8px rgba(42, 27, 20, 0.18)',
-        soft: '0 2px 12px rgba(42, 27, 20, 0.08)',
+        card: '0 10px 32px -10px rgba(58, 27, 13, 0.28)',
+        soft: '0 2px 12px rgba(58, 27, 13, 0.08)',
       },
     },
   },

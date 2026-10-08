@@ -10,6 +10,8 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  font-size: 16.5px;
+  line-height: 1.6;
 }
 
 /* :: Custom Scrollbar :: */
@@ -18,16 +20,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #fbf3e6;
+  background: #f8f1e4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c7a15a;
+  background: #c9a36a;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bd5b2c;
+  background: #a4531c;
 }
 
 @layer components {
@@ -36,27 +38,35 @@ body {
   }
 
   .eyebrow {
-    @apply font-sans text-xs font-semibold uppercase tracking-[0.2em] text-terracotta;
+    @apply font-sans text-[11px] font-medium uppercase tracking-[0.28em] text-terracotta;
   }
 
   .section-title {
-    @apply font-display text-3xl text-primary md:text-4xl;
+    @apply font-display text-4xl font-medium leading-[1.1] text-primary md:text-5xl;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-sans text-sm font-semibold tracking-wide text-cream transition-all duration-300 hover:bg-terracotta;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-7 py-3 font-sans text-[13px] font-medium uppercase tracking-[0.14em] text-cream transition-all duration-300 hover:bg-terracotta;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-primary/30 bg-transparent px-6 py-3 font-sans text-sm font-semibold tracking-wide text-primary transition-all duration-300 hover:border-primary hover:bg-primary hover:text-cream;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-primary/30 bg-transparent px-7 py-3 font-sans text-[13px] font-medium uppercase tracking-[0.14em] text-primary transition-all duration-300 hover:border-primary hover:bg-primary hover:text-cream;
   }
 
   .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-6 py-3 font-sans text-sm font-semibold tracking-wide text-primary transition-all duration-300 hover:bg-terracotta hover:text-cream;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3 font-sans text-[13px] font-medium uppercase tracking-[0.14em] text-primary transition-all duration-300 hover:bg-cream;
+  }
+
+  .btn-ghost-cream {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cream/40 px-7 py-3 font-sans text-[13px] font-medium uppercase tracking-[0.14em] text-cream transition-all duration-300 hover:border-cream hover:bg-cream hover:text-primary;
   }
 
   .card-surface {
     @apply rounded-2xl border border-cardBorder bg-white shadow-soft;
+  }
+
+  .filete {
+    @apply mx-auto block h-px w-16 bg-gold;
   }
 
   .prose-policy p {

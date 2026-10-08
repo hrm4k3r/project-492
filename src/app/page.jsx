@@ -1,19 +1,19 @@
-import CarrosselDetalhes from "./components/CarrosselDetalhes";
-import SeloPremios from "./components/SeloPremios";
+import Hero from "./components/home/Hero";
+import CategoriasHome from "./components/home/CategoriasHome";
 import Produtos from "./components/Produtos";
-import SobreTeaser from "./components/SobreTeaser";
-import RotaDoQueijo from "./components/RotadoQueijo";
-import Blog from "./components/Blog";
+import Curadoria from "./components/home/Curadoria";
+import InstagramFaixa from "./components/home/InstagramFaixa";
+import CtaWhatsapp from "./components/home/CtaWhatsapp";
 
 export default function Home() {
   return (
     <div>
-      <CarrosselDetalhes />
-      <SeloPremios />
+      <Hero />
+      <CategoriasHome />
       <Produtos />
-      <SobreTeaser />
-      <RotaDoQueijo />
-      <Blog />
+      <Curadoria />
+      <InstagramFaixa />
+      <CtaWhatsapp />
     </div>
   );
 }

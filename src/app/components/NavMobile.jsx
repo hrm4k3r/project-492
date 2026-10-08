@@ -1,58 +1,47 @@
 "use client";
-import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faComments,
-  faCartShopping,
-  faPeopleGroup,
-  faLock,
-  faHome,
-  faCheese,
-  faBars,
-  faXmark,
-  faUser,
-} from "@fortawesome/free-solid-svg-icons";
-import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
-import logo from "../../../public/logo.png";
-
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBagShopping, faBars, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { LOJA, whatsappLink } from "../../lib/loja";
+import { CATEGORIAS, LOJA, whatsappLink } from "../../lib/loja";
 
-const baseLinks = [
-  { href: "/", label: "Início", icon: faHome },
-  { href: "/produtos", label: "Produtos", icon: faCheese },
-  { href: "/quem-somos", label: "Quem Somos", icon: faPeopleGroup },
-  { href: "/carrinho", label: "Carrinho", icon: faCartShopping },
-  { href: "/fale-conosco", label: "Atendimento", icon: faComments },
-  { href: "/politica-de-privacidade", label: "Política de Privacidade", icon: faLock },
-  { href: "/politica-de-troca-e-devolucao", label: "Trocas e Devoluções", icon: faLock },
-];
+const itemClass =
+  "rounded-lg px-3 py-3 font-sans text-[13px] font-medium uppercase tracking-[0.16em] text-cream/90 transition-colors duration-300 hover:bg-gold/10 hover:text-gold";
 
 export default function NavMobile() {
   const [showSidebar, setShowSidebar] = useState(false);
   const { user } = useAuth();
   const { totalItens } = useCart();
-  const links = [
-    { href: user ? "/conta" : "/entrar", label: user ? "Minha Conta" : "Entrar", icon: faUser },
-    ...baseLinks,
+  const fechar = () => setShowSidebar(false);
+
+  const principais = [
+    { href: "/", label: "Início" },
+    { href: "/produtos", label: "Catálogo" },
+    { href: "/quem-somos", label: "Quem Somos" },
+    { href: "/fale-conosco", label: "Atendimento" },
+    { href: user ? "/conta" : "/entrar", label: user ? "Minha Conta" : "Entrar" },
   ];
 
   return (
-    <div className="flex justify-around bg-primary md:hidden">
-      <div className="flex w-screen items-center justify-between px-5 py-3">
-        <Link href="/" className="flex items-center gap-2">
+    <div className="bg-brand md:hidden">
+      <div className="flex items-center justify-between px-5 py-3">
+        <Link href="/" aria-label={LOJA.nome} onClick={fechar}>
           <Image
-            src={logo}
+            src="/logo-texto-creme.png"
+            width={721}
+            height={244}
             alt={LOJA.nome}
-            className="w-14 rounded-full ring-2 ring-gold/60"
+            priority
+            className="h-11 w-auto"
           />
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/carrinho" className="relative text-gold">
-            <FontAwesomeIcon icon={faCartShopping} className="text-2xl" />
+          <Link href="/carrinho" aria-label="Carrinho" className="relative text-gold">
+            <FontAwesomeIcon icon={faBagShopping} className="text-2xl" />
             {totalItens > 0 && (
               <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-terracotta text-[10px] font-bold text-cream">
                 {totalItens}
@@ -61,7 +50,7 @@ export default function NavMobile() {
           </Link>
           <button
             aria-label="Abrir menu"
-            onClick={() => setShowSidebar(!showSidebar)}
+            onClick={() => setShowSidebar(true)}
             className="flex h-10 w-10 items-center justify-center rounded-full text-gold"
           >
             <FontAwesomeIcon icon={faBars} className="text-2xl" />
@@ -70,44 +59,49 @@ export default function NavMobile() {
       </div>
 
       {showSidebar && (
-        <div
-          className="fixed inset-0 z-40 bg-primary/60 backdrop-blur-sm"
-          onClick={() => setShowSidebar(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-primary/70 backdrop-blur-sm" onClick={fechar} />
       )}
 
       <div
-        className={`fixed right-0 top-0 z-50 flex h-full w-[78vw] max-w-xs flex-col bg-primary text-cream shadow-2xl transition-transform duration-500 ease-in-out ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-[82vw] max-w-xs flex-col overflow-y-auto bg-brand text-cream shadow-2xl transition-transform duration-500 ease-in-out ${
           showSidebar ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <button
           className="flex items-center justify-end p-6 text-xl text-gold"
-          onClick={() => setShowSidebar(false)}
+          onClick={fechar}
           aria-label="Fechar menu"
         >
           <FontAwesomeIcon icon={faXmark} />
         </button>
 
-        <nav className="flex flex-col gap-1 px-4">
-          {links.map((link) => (
-            <Link
-              key={link.href + link.label}
-              href={link.href}
-              className="flex items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-cream/90 transition-colors duration-300 hover:bg-gold/10 hover:text-gold"
-              onClick={() => setShowSidebar(false)}
-            >
-              <FontAwesomeIcon icon={link.icon} className="w-5 text-gold" />
+        <nav className="flex flex-col px-4">
+          {principais.map((link) => (
+            <Link key={link.label} href={link.href} className={itemClass} onClick={fechar}>
               {link.label}
+            </Link>
+          ))}
+
+          <p className="mt-6 px-3 font-sans text-[11px] uppercase tracking-[0.28em] text-gold">
+            Categorias
+          </p>
+          {CATEGORIAS.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/produtos?categoria=${c.slug}`}
+              className={`${itemClass} !text-cream/75 normal-case tracking-wide`}
+              onClick={fechar}
+            >
+              {c.nome}
             </Link>
           ))}
         </nav>
 
-        <div className="mt-auto flex items-center justify-center gap-6 border-t border-gold/20 p-6 text-lg text-gold">
-          <Link href={LOJA.instagram} target="_blank">
+        <div className="mt-auto flex items-center justify-center gap-6 border-t border-gold/20 p-6 text-xl text-gold">
+          <Link href={LOJA.instagram} target="_blank" aria-label="Instagram">
             <FontAwesomeIcon icon={faInstagram} />
           </Link>
-          <Link href={whatsappLink()} target="_blank">
+          <Link href={whatsappLink()} target="_blank" aria-label="WhatsApp">
             <FontAwesomeIcon icon={faWhatsapp} />
           </Link>
         </div>

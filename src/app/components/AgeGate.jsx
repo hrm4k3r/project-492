@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { LOJA } from "../../lib/loja";
 
 const CHAVE = "maioridade-confirmada";
@@ -43,13 +44,13 @@ export default function AgeGate() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="agegate-titulo"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-primary/95 px-5 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-brand px-5"
     >
       <div className="w-full max-w-md rounded-2xl bg-light p-8 text-center shadow-2xl">
-        <p className="eyebrow">{LOJA.nome}</p>
+        <Image src="/logo-marrom.png" width={749} height={497} alt={LOJA.nome} className="mx-auto h-auto w-40" priority />
         {estado === "pergunta" ? (
           <>
-            <h2 id="agegate-titulo" className="mt-3 font-display text-2xl text-primary">
+            <h2 id="agegate-titulo" className="mt-6 font-display text-3xl font-medium text-primary">
               Você tem 18 anos ou mais?
             </h2>
             <p className="mt-3 text-sm text-primary/70">
@@ -68,7 +69,7 @@ export default function AgeGate() {
           </>
         ) : (
           <>
-            <h2 id="agegate-titulo" className="mt-3 font-display text-2xl text-primary">
+            <h2 id="agegate-titulo" className="mt-6 font-display text-3xl font-medium text-primary">
               Acesso indisponível
             </h2>
             <p className="mt-3 text-sm text-primary/70">

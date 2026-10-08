@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../config/supabase";
-import { CATEGORIAS } from "../../lib/loja";
 import { ProdutoCard, ProdutoCardSkeleton } from "./ProdutoCard";
 
 const DESTAQUES = 8;
@@ -31,28 +30,16 @@ export default function Produtos() {
   }, []);
 
   return (
-    <section id="produtos" className="bg-light py-20">
+    <section id="produtos" className="bg-sand py-20 md:py-24">
       <div className="container-page flex flex-col items-center">
-        <span className="eyebrow">Nossa seleção</span>
-        <h2 className="section-title mt-2 text-center">Produtos</h2>
-        <p className="mt-3 max-w-xl text-center text-primary/60">
-          Cervejas, vinhos, queijos e cafés escolhidos com olhar atento para
-          qualidade, origem e sabor.
+        <span className="eyebrow">Em destaque</span>
+        <h2 className="section-title mt-3 text-center">Novidades na curadoria</h2>
+        <span className="filete mt-6" />
+        <p className="mt-5 max-w-xl text-center text-primary/65">
+          Rótulos escolhidos com olhar atento para qualidade, origem e sabor.
         </p>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {CATEGORIAS.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/produtos?categoria=${c.slug}`}
-              className="rounded-full border border-cardBorder bg-white px-4 py-2 text-sm font-medium text-primary transition-colors duration-300 hover:border-gold hover:text-terracotta"
-            >
-              {c.nome}
-            </Link>
-          ))}
-        </div>
-
-        <div className="mt-10 grid w-full grid-cols-2 gap-5 md:grid-cols-4">
+        <div className="mt-12 grid w-full grid-cols-2 gap-5 md:grid-cols-4">
           {loading
             ? Array.from({ length: DESTAQUES }).map((_, i) => <ProdutoCardSkeleton key={i} />)
             : produtos.map((p) => <ProdutoCard key={p.id} produto={p} />)}
