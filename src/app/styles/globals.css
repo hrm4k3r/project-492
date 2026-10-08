@@ -67,3 +67,7 @@ body {
     @apply font-display text-xl text-primary md:text-2xl;
   }
 }
+
+html[data-maior="1"] [data-agegate] {
+  display: none;
+}

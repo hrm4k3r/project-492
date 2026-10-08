@@ -39,6 +39,7 @@ export default function AgeGate() {
 
   return (
     <div
+      data-agegate
       role="dialog"
       aria-modal="true"
       aria-labelledby="agegate-titulo"

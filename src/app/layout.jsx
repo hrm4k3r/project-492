@@ -10,6 +10,9 @@ import AgeGate from './components/AgeGate'
 
 config.autoAddCss = false
 
+const SCRIPT_MAIORIDADE =
+  '(function(){try{var t=Number(localStorage.getItem("maioridade-confirmada"));if(t&&Date.now()-t<2592000000)document.documentElement.setAttribute("data-maior","1")}catch(e){}})();'
+
 const display = Fraunces({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
@@ -26,7 +29,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-br">
+    <html lang="pt-br" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_MAIORIDADE }} />
+      </head>
       <body
         className={`${display.variable} ${sans.variable} min-h-screen bg-light font-sans text-primary`}
       >
