@@ -32,15 +32,15 @@ export function gerarPixCopiaECola({ chave, nome, cidade, valor, txid }) {
   const merchantAccountInfo =
     tlv("00", "BR.GOV.BCB.PIX") +
     tlv("01", chave) +
-    tlv("02", "Fazenda Santo Antonio".slice(0, 40));
+    tlv("02", "Pedido da loja");
 
   const valorFormatado = Number(valor).toFixed(2);
 
   const txidLimpo = (txid || "***").replace(/[^a-zA-Z0-9]/g, "").slice(0, 25) || "***";
   const additionalData = tlv("05", txidLimpo);
 
-  const nomeFormatado = semAcento(nome).slice(0, 25) || "FAZENDA SANTO ANTONIO";
-  const cidadeFormatada = semAcento(cidade).slice(0, 15) || "ALAGOA";
+  const nomeFormatado = semAcento(nome).slice(0, 25) || "LOJA";
+  const cidadeFormatada = semAcento(cidade).slice(0, 15) || "BRASIL";
 
   let payload =
     tlv("00", "01") +
