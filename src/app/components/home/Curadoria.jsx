@@ -55,10 +55,15 @@ export default function Curadoria() {
             ))}
           </ul>
 
-          <Link href="/produtos" className="btn-gold mt-10">
-            Conhecer o catálogo
-            <FontAwesomeIcon icon={faArrowRight} />
-          </Link>
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row md:justify-start">
+            <Link href="/produtos" className="btn-gold">
+              Conhecer o catálogo
+              <FontAwesomeIcon icon={faArrowRight} />
+            </Link>
+            <Link href="/quem-somos" className="btn-ghost-cream">
+              Nossa história
+            </Link>
+          </div>
         </div>
       </div>
     </section>
