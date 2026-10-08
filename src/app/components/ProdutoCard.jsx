@@ -12,7 +12,7 @@ const isPremiado = (text = "") => /pr[eê]mio|premiad/i.test(text);
 export function ProdutoCard({ produto }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
-  const { id, produto: titulo, shortdescription, valor, imagens, marca, pais } = produto;
+  const { id, produto: titulo, shortdescription, valor, imagens, marca, pais, estilo } = produto;
   const origem = [marca, pais].filter(Boolean).join(" · ");
 
   const handleAdd = () => {
@@ -23,7 +23,7 @@ export function ProdutoCard({ produto }) {
 
   return (
     <div className="card-surface group flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
-      <Link href={`/detalhes?id=${id}`} className="relative block aspect-square overflow-hidden bg-cream">
+      <Link href={`/detalhes?id=${id}`} className="relative block aspect-[4/5] overflow-hidden bg-sand">
         <Image
           src={imagens[0]}
           alt={titulo}
@@ -31,11 +31,17 @@ export function ProdutoCard({ produto }) {
           sizes="(min-width: 768px) 25vw, 50vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {isPremiado(shortdescription) && (
-          <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gold">
+        {isPremiado(shortdescription) ? (
+          <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-gold">
             <FontAwesomeIcon icon={faAward} />
             Premiado
           </span>
+        ) : (
+          estilo && (
+            <span className="absolute left-3 top-3 rounded-full bg-light/95 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-primary/80">
+              {estilo}
+            </span>
+          )
         )}
       </Link>
       <div className="flex flex-1 flex-col p-5">

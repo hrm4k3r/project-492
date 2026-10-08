@@ -11,12 +11,23 @@ export const whatsappLink = (texto) =>
   `https://wa.me/${LOJA.whatsapp}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 
 export const CATEGORIAS = [
-  { slug: "cervejas-nacionais", nome: "Cervejas Artesanais Nacionais" },
-  { slug: "cervejas-importadas", nome: "Cervejas Importadas" },
-  { slug: "vinhos", nome: "Vinhos" },
-  { slug: "queijos", nome: "Queijos" },
-  { slug: "cafes", nome: "Cafés" },
+  {
+    slug: "cervejas-nacionais",
+    nome: "Cervejas Artesanais Nacionais",
+    descricao: "Rótulos brasileiros com personalidade, de cervejarias que fazem a diferença.",
+  },
+  {
+    slug: "cervejas-importadas",
+    nome: "Cervejas Importadas",
+    descricao: "Clássicos e descobertas de diferentes países e tradições cervejeiras.",
+  },
+  { slug: "vinhos", nome: "Vinhos", descricao: "Vinhos selecionados por origem, uva e perfil." },
+  { slug: "queijos", nome: "Queijos", descricao: "Queijos para acompanhar cada rótulo da mesa." },
+  { slug: "cafes", nome: "Cafés", descricao: "Cafés especiais, escolhidos pela origem e pelo sabor." },
 ];
+
+export const DESCRICAO_CATALOGO =
+  "Cervejas, vinhos, queijos e cafés escolhidos com cuidado, com sugestões para cada momento.";
 
 export const nomeDaCategoria = (slug) => CATEGORIAS.find((c) => c.slug === slug)?.nome ?? "";
 

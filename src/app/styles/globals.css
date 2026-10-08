@@ -81,3 +81,11 @@ body {
 html[data-maior="1"] [data-agegate] {
   display: none;
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
