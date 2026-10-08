@@ -9,13 +9,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import NavMobile from "./NavMobile";
-import {
-  faFacebook,
-  faInstagram,
-  faWhatsapp,
-} from "@fortawesome/free-brands-svg-icons";
+import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { LOJA, whatsappLink, formatBRL } from "../../lib/loja";
+import { useConfiguracoes } from "../../lib/useConfiguracoes";
 
 const CustomLink = ({ title, link }) => {
   return (
@@ -31,6 +29,7 @@ const CustomLink = ({ title, link }) => {
 export default function NavBar() {
   const { user, profile } = useAuth();
   const { totalItens } = useCart();
+  const { freteGratisAcima } = useConfiguracoes();
 
   return (
     <div className="sticky top-0 z-30">
@@ -38,26 +37,20 @@ export default function NavBar() {
       <div className="hidden items-center justify-between bg-primary px-6 py-2 text-cream md:flex">
         <p className="flex items-center gap-2 font-sans text-xs tracking-wide text-cream/80">
           <FontAwesomeIcon icon={faTruck} className="text-gold" />
-          Frete grátis para compras acima de R$ 1.000,00 &middot; Atendemos
-          também ao varejo, consulte-nos
+          {freteGratisAcima > 0
+            ? `Frete grátis para compras acima de ${formatBRL(freteGratisAcima)}`
+            : "Entregamos para todo o Brasil"}
         </p>
         <div className="flex items-center gap-4">
           <Link
-            href="https://www.instagram.com/queijofazendasantoantonio/"
+            href={LOJA.instagram}
             target="_blank"
             className="text-cream/80 transition-colors duration-300 hover:text-gold"
           >
             <FontAwesomeIcon icon={faInstagram} />
           </Link>
           <Link
-            href="https://www.facebook.com/queijofazendasantoantonio"
-            target="_blank"
-            className="text-cream/80 transition-colors duration-300 hover:text-gold"
-          >
-            <FontAwesomeIcon icon={faFacebook} />
-          </Link>
-          <Link
-            href="https://wa.me/+553598647172"
+            href={whatsappLink()}
             target="_blank"
             className="text-cream/80 transition-colors duration-300 hover:text-gold"
           >
@@ -76,14 +69,13 @@ export default function NavBar() {
               src={logo}
               width={64}
               height={64}
-              alt="Queijo Fazenda Santo Antônio"
+              alt={LOJA.nome}
               className="rounded-full ring-2 ring-gold/60"
             />
           </Link>
           <div className="flex items-center gap-7">
             <CustomLink link="/" title="Início" />
-            <CustomLink link="/#produtos" title="Produtos" />
-            <CustomLink link="/rota" title="Rota do Queijo" />
+            <CustomLink link="/produtos" title="Produtos" />
             <CustomLink link="/quem-somos" title="Quem Somos" />
           </div>
         </div>

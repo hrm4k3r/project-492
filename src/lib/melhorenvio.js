@@ -119,7 +119,7 @@ export async function calcularFrete({ cepDestino, produtos }) {
       "Content-Type": "application/json",
       Accept: "application/json",
       Authorization: `Bearer ${accessToken}`,
-      "User-Agent": "Fazenda Santo Antônio (hebertdev82@gmail.com)",
+      "User-Agent": "Curadoria da Mesa (hebertdev82@gmail.com)",
     },
     body: JSON.stringify({
       from: { postal_code: onlyDigits(process.env.MELHORENVIO_CEP_ORIGEM) },

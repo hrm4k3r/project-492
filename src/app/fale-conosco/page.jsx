@@ -2,12 +2,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { LOJA, whatsappLink } from "../../lib/loja";
 import {
   faLocationDot,
-  faClock,
   faPaperPlane,
 } from "@fortawesome/free-solid-svg-icons";
-import { faWhatsapp, faInstagram, faFacebook } from "@fortawesome/free-brands-svg-icons";
+import { faWhatsapp, faInstagram } from "@fortawesome/free-brands-svg-icons";
 
 export default function FaleConosco() {
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
@@ -16,8 +16,11 @@ export default function FaleConosco() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const texto = `Olá! Meu nome é ${form.nome}.%0A${form.mensagem}%0A%0AContato: ${form.telefone || form.email}`;
-    window.open(`https://wa.me/5535998647172?text=${texto}`, "_blank");
+    const texto = `Olá! Meu nome é ${form.nome}.
+${form.mensagem}
+
+Contato: ${form.telefone || form.email}`;
+    window.open(whatsappLink(texto), "_blank");
   };
 
   return (
@@ -33,28 +36,21 @@ export default function FaleConosco() {
             <div className="card-surface p-6">
               <h2 className="font-display text-lg text-primary">Contato direto</h2>
               <Link
-                href="https://wa.me/+553598647172"
+                href={whatsappLink()}
                 target="_blank"
                 className="mt-4 flex items-center gap-3 text-primary/80 transition-colors duration-300 hover:text-terracotta"
               >
                 <FontAwesomeIcon icon={faWhatsapp} className="text-xl text-olive" />
-                +55 (35) 99864-7172
+                {LOJA.whatsappExibicao}
               </Link>
               <p className="mt-4 flex items-start gap-3 text-primary/80">
                 <FontAwesomeIcon icon={faLocationDot} className="mt-1 text-terracotta" />
-                Estrada Alagoa&ndash;Itamonte, KM 2, Bairro Prateado
-              </p>
-              <p className="mt-4 flex items-start gap-3 text-primary/80">
-                <FontAwesomeIcon icon={faClock} className="mt-1 text-terracotta" />
-                Segunda a sexta, das 8h às 18h
+                {LOJA.endereco}
               </p>
             </div>
             <div className="card-surface flex items-center gap-5 p-6">
-              <Link href="https://www.instagram.com/queijofazendasantoantonio/" target="_blank" className="text-2xl text-primary transition-colors duration-300 hover:text-terracotta">
+              <Link href={LOJA.instagram} target="_blank" className="text-2xl text-primary transition-colors duration-300 hover:text-terracotta">
                 <FontAwesomeIcon icon={faInstagram} />
-              </Link>
-              <Link href="https://www.facebook.com/queijofazendasantoantonio" target="_blank" className="text-2xl text-primary transition-colors duration-300 hover:text-terracotta">
-                <FontAwesomeIcon icon={faFacebook} />
               </Link>
             </div>
           </div>

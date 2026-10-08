@@ -4,6 +4,7 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { supabase } from "../../../config/supabase";
 import { gerarPixCopiaECola } from "../../lib/pix";
+import { whatsappLink } from "../../lib/loja";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCopy, faCheck, faArrowRotateRight, faCircleCheck, faTriangleExclamation,
@@ -39,9 +40,7 @@ export default function PagamentoStep({ order }) {
   const [erro, setErro] = useState("");
   const [verificando, setVerificando] = useState(false);
 
-  const mensagemWhats = encodeURIComponent(
-    `Olá! Fiz o pedido #${order.id.slice(0, 8)} no site (total ${formatBRL(order.total)}) e já vou pagar o Pix. Segue o comprovante:`
-  );
+  const mensagemWhats = `Olá! Fiz o pedido #${order.id.slice(0, 8)} no site (total ${formatBRL(order.total)}) e já vou pagar o Pix. Segue o comprovante:`;
 
   useEffect(() => {
     async function gerar() {
@@ -122,7 +121,7 @@ export default function PagamentoStep({ order }) {
 
       <p className="text-xs text-primary/50">
         Assim que pagar, envie o comprovante pra gente confirmar mais rápido:{" "}
-        <Link href={`https://wa.me/5535998647172?text=${mensagemWhats}`} target="_blank" className="font-semibold text-terracotta">
+        <Link href={whatsappLink(mensagemWhats)} target="_blank" className="font-semibold text-terracotta">
           Enviar comprovante no WhatsApp
         </Link>
       </p>

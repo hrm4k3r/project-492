@@ -6,20 +6,22 @@ import { useAuth } from "../context/AuthContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faGauge,
-  faCheese,
+  faWineBottle,
   faBoxOpen,
   faTruck,
   faTags,
+  faGear,
   faRightFromBracket,
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: faGauge },
-  { href: "/admin/produtos", label: "Produtos", icon: faCheese },
+  { href: "/admin/produtos", label: "Produtos", icon: faWineBottle },
   { href: "/admin/pedidos", label: "Pedidos", icon: faBoxOpen },
   { href: "/admin/frete", label: "Frete", icon: faTruck },
   { href: "/admin/cupons", label: "Cupons", icon: faTags },
+  { href: "/admin/configuracoes", label: "Configurações", icon: faGear },
 ];
 
 export default function AdminLayout({ children }) {

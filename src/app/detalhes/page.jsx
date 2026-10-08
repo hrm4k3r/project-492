@@ -7,6 +7,7 @@ import { supabase } from "../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAward, faMinus, faPlus, faCartPlus, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useCart } from "../context/CartContext";
+import { nomeDaCategoria } from "../../lib/loja";
 
 const isPremiado = (text = "") => /pr[eê]mio|premiad/i.test(text);
 
@@ -54,7 +55,7 @@ export default function Detalhes() {
     return (
       <div className="container-page flex min-h-[50vh] flex-col items-center justify-center gap-4 bg-light py-20 text-center">
         <p className="text-primary/70">Não encontramos esse produto.</p>
-        <Link href="/#produtos" className="btn-primary">Ver todos os produtos</Link>
+        <Link href="/produtos" className="btn-primary">Ver todos os produtos</Link>
       </div>
     );
   }
@@ -64,6 +65,12 @@ export default function Detalhes() {
     currency: "BRL",
   });
   const imagens = produto.imagens || [];
+  const ficha = [
+    ["Categoria", nomeDaCategoria(produto.categoria)],
+    ["Marca", produto.marca],
+    ["País de origem", produto.pais],
+    ["Estilo", produto.estilo],
+  ].filter(([, valor]) => valor);
 
   return (
     <div className="bg-light py-12 md:py-16">
@@ -132,9 +139,20 @@ export default function Detalhes() {
             </button>
           </div>
 
-          <div className="mt-10 border-t border-cardBorder pt-6 text-sm text-primary/60">
-            <p>Queijo artesanal, produzido com leite cru na Fazenda Santo Antônio, em Alagoa &mdash; MG.</p>
-          </div>
+          {ficha.length > 0 && (
+            <dl className="mt-10 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-cardBorder pt-6 text-sm">
+              {ficha.map(([nome, valor]) => (
+                <div key={nome} className="contents">
+                  <dt className="text-primary/50">{nome}</dt>
+                  <dd className="text-primary">{valor}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <p className="mt-6 text-xs text-primary/50">
+            Venda proibida para menores de 18 anos. Beba com moderação.
+          </p>
         </div>
       </div>
     </div>

@@ -17,6 +17,10 @@ create table if not exists produtos (
   avaliacao numeric(2, 1) default 5.0,
   linkpagamento text,
   ativo boolean not null default true,
+  categoria text,
+  pais text,
+  marca text,
+  estilo text,
   peso_kg numeric(6, 2) not null default 0.5,
   altura_cm numeric(6, 2) not null default 10,
   largura_cm numeric(6, 2) not null default 15,
@@ -25,6 +29,8 @@ create table if not exists produtos (
 );
 
 alter table produtos enable row level security;
+
+create index if not exists produtos_categoria_idx on produtos (categoria);
 
 create policy "Produtos são públicos para leitura"
   on produtos for select using (ativo = true);
@@ -280,6 +286,48 @@ create table if not exists integracoes (
 );
 
 alter table integracoes enable row level security;
+
+-- ============================================================
+-- CONFIGURAÇÕES DA LOJA (editáveis em Admin > Configurações)
+-- ============================================================
+create table if not exists configuracoes (
+  chave text primary key,
+  valor jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table configuracoes enable row level security;
+
+create policy "Configurações são públicas para leitura"
+  on configuracoes for select using (true);
+
+create policy "Admin gerencia configurações"
+  on configuracoes for all using (is_admin()) with check (is_admin());
+
+insert into configuracoes (chave, valor) values
+  ('frete_gratis_acima', '1000'::jsonb),
+  ('primeira_compra_percent', '10'::jsonb)
+on conflict (chave) do nothing;
+
+-- Desconto de primeira compra do cliente logado (só se ainda não tem pedidos).
+create or replace function desconto_primeira_compra()
+returns numeric
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select case
+    when auth.uid() is not null
+      and not exists (
+        select 1 from orders where profile_id = auth.uid() and status <> 'cancelado'
+      )
+    then coalesce((select (valor #>> '{}')::numeric from configuracoes where chave = 'primeira_compra_percent'), 0)
+    else 0
+  end;
+$$;
+
+grant execute on function desconto_primeira_compra() to authenticated;
 
 -- ============================================================
 -- STORAGE: bucket de fotos dos produtos

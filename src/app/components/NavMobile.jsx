@@ -12,22 +12,18 @@ import {
   faXmark,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  faFacebook,
-  faInstagram,
-  faWhatsapp,
-} from "@fortawesome/free-brands-svg-icons";
+import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import logo from "../../../public/logo.png";
 
 import { useState } from "react";
 import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { LOJA, whatsappLink } from "../../lib/loja";
 
 const baseLinks = [
   { href: "/", label: "Início", icon: faHome },
-  { href: "/#produtos", label: "Produtos", icon: faCheese },
-  { href: "/rota", label: "Rota do Queijo", icon: faPeopleGroup },
+  { href: "/produtos", label: "Produtos", icon: faCheese },
   { href: "/quem-somos", label: "Quem Somos", icon: faPeopleGroup },
   { href: "/carrinho", label: "Carrinho", icon: faCartShopping },
   { href: "/fale-conosco", label: "Atendimento", icon: faComments },
@@ -50,7 +46,7 @@ export default function NavMobile() {
         <Link href="/" className="flex items-center gap-2">
           <Image
             src={logo}
-            alt="Queijo Fazenda Santo Antônio"
+            alt={LOJA.nome}
             className="w-14 rounded-full ring-2 ring-gold/60"
           />
         </Link>
@@ -108,13 +104,10 @@ export default function NavMobile() {
         </nav>
 
         <div className="mt-auto flex items-center justify-center gap-6 border-t border-gold/20 p-6 text-lg text-gold">
-          <Link href="https://www.instagram.com/queijofazendasantoantonio/" target="_blank">
+          <Link href={LOJA.instagram} target="_blank">
             <FontAwesomeIcon icon={faInstagram} />
           </Link>
-          <Link href="https://www.facebook.com/queijofazendasantoantonio" target="_blank">
-            <FontAwesomeIcon icon={faFacebook} />
-          </Link>
-          <Link href="https://wa.me/+553598647172" target="_blank">
+          <Link href={whatsappLink()} target="_blank">
             <FontAwesomeIcon icon={faWhatsapp} />
           </Link>
         </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "../../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { nomeDaCategoria } from "../../../lib/loja";
 
 export default function AdminProdutos() {
   const [produtos, setProdutos] = useState([]);
@@ -62,6 +63,7 @@ export default function AdminProdutos() {
               <tr className="border-b border-cardBorder text-xs uppercase tracking-wide text-primary/50">
                 <th className="py-2">Foto</th>
                 <th className="py-2">Produto</th>
+                <th className="py-2">Categoria</th>
                 <th className="py-2">Preço</th>
                 <th className="py-2">Status</th>
                 <th className="py-2">Ações</th>
@@ -78,6 +80,9 @@ export default function AdminProdutos() {
                     </div>
                   </td>
                   <td className="py-3 font-medium text-primary">{p.produto}</td>
+                  <td className="py-3 text-sm text-primary/60">
+                    {nomeDaCategoria(p.categoria) || <span className="text-terracotta">Sem categoria</span>}
+                  </td>
                   <td className="py-3 text-terracotta">
                     {Number(p.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </td>

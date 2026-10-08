@@ -6,6 +6,7 @@ import { config } from '@fortawesome/fontawesome-svg-core'
 import { Fraunces, Inter } from 'next/font/google'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
+import AgeGate from './components/AgeGate'
 
 config.autoAddCss = false
 
@@ -18,9 +19,9 @@ const display = Fraunces({
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata = {
-  title: 'Queijo Fazenda Santo Antônio | Queijos Artesanais Premiados',
+  title: 'Curadoria da Mesa | Seleção de Sabores',
   description:
-    'Queijos artesanais premiados na França, produzidos na Fazenda Santo Antônio, em Alagoa (MG). Tradição de família, leite cru e sabor que conquistou o mundo.',
+    'Cervejas artesanais nacionais e importadas, vinhos, queijos e cafés selecionados com cuidado, com sugestões de harmonização. Entregamos para todo o Brasil.',
 }
 
 export default function RootLayout({ children }) {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
       >
         <AuthProvider>
           <CartProvider>
+            <AgeGate />
             <NavBar />
             {children}
             <Footer />

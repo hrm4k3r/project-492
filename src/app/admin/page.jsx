@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheese, faBoxOpen, faCoins, faClock } from "@fortawesome/free-solid-svg-icons";
+import { faWineBottle, faBoxOpen, faCoins, faClock } from "@fortawesome/free-solid-svg-icons";
 
 const StatCard = ({ icon, label, value, href }) => (
   <Link href={href} className="card-surface flex items-center gap-4 p-5 transition-shadow hover:shadow-card">
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       <p className="mt-2 text-primary/60">Visão geral da loja.</p>
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={faCheese} label="Produtos cadastrados" value={loading ? "..." : stats.produtos} href="/admin/produtos" />
+        <StatCard icon={faWineBottle} label="Produtos cadastrados" value={loading ? "..." : stats.produtos} href="/admin/produtos" />
         <StatCard icon={faClock} label="Pedidos pendentes" value={loading ? "..." : stats.pedidosPendentes} href="/admin/pedidos" />
         <StatCard icon={faBoxOpen} label="Total de pedidos" value={loading ? "..." : stats.totalPedidos} href="/admin/pedidos" />
         <StatCard

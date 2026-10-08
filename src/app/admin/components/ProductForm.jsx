@@ -4,6 +4,7 @@ import Image from "next/image";
 import { supabase } from "../../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faTrash, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { CATEGORIAS, SUGESTOES_PAIS, SUGESTOES_ESTILO } from "../../../lib/loja";
 
 export default function ProductForm({ initialData, onSubmit, submitLabel }) {
   const [form, setForm] = useState({
@@ -12,6 +13,10 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
     valor: initialData?.valor ?? "",
     imagens: initialData?.imagens ?? [],
     ativo: initialData?.ativo ?? true,
+    categoria: initialData?.categoria ?? "",
+    marca: initialData?.marca ?? "",
+    pais: initialData?.pais ?? "",
+    estilo: initialData?.estilo ?? "",
     peso_kg: initialData?.peso_kg ?? 0.5,
     altura_cm: initialData?.altura_cm ?? 10,
     largura_cm: initialData?.largura_cm ?? 15,
@@ -63,6 +68,10 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
     await onSubmit({
       ...form,
       valor: Number(form.valor),
+      categoria: form.categoria || null,
+      marca: form.marca.trim() || null,
+      pais: form.pais.trim() || null,
+      estilo: form.estilo.trim() || null,
       peso_kg: Number(form.peso_kg),
       altura_cm: Number(form.altura_cm),
       largura_cm: Number(form.largura_cm),
@@ -90,7 +99,7 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
           name="shortdescription"
           value={form.shortdescription}
           onChange={handleChange}
-          placeholder='Ex: "Queijo premiado na França em 2023"'
+          placeholder='Ex: "IPA belga encorpada, notas cítricas"'
           className="mt-1 w-full rounded-lg border border-cardBorder bg-white px-4 py-2.5 outline-none focus:border-gold"
         />
       </div>
@@ -107,6 +116,58 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
           onChange={handleChange}
           className="mt-1 w-40 rounded-lg border border-cardBorder bg-white px-4 py-2.5 outline-none focus:border-gold"
         />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-primary">Categoria</label>
+        <select
+          required
+          name="categoria"
+          value={form.categoria}
+          onChange={handleChange}
+          className="mt-1 w-full rounded-lg border border-cardBorder bg-white px-4 py-2.5 outline-none focus:border-gold"
+        >
+          <option value="">Selecione...</option>
+          {CATEGORIAS.map((c) => (
+            <option key={c.slug} value={c.slug}>{c.nome}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-primary">Detalhes para os filtros da loja</label>
+        <p className="mb-2 text-xs text-primary/50">
+          Opcionais. Escreva sempre do mesmo jeito (ex: &quot;Bélgica&quot;, nunca &quot;belgica&quot;) para o filtro agrupar certo.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className="text-xs text-primary/60">Marca</label>
+            <input
+              name="marca" value={form.marca} onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-cardBorder bg-white px-3 py-2 outline-none focus:border-gold"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-primary/60">País de origem</label>
+            <input
+              name="pais" value={form.pais} onChange={handleChange} list="sugestoes-pais"
+              className="mt-1 w-full rounded-lg border border-cardBorder bg-white px-3 py-2 outline-none focus:border-gold"
+            />
+            <datalist id="sugestoes-pais">
+              {SUGESTOES_PAIS.map((p) => <option key={p} value={p} />)}
+            </datalist>
+          </div>
+          <div>
+            <label className="text-xs text-primary/60">Estilo / tipo</label>
+            <input
+              name="estilo" value={form.estilo} onChange={handleChange} list="sugestoes-estilo"
+              className="mt-1 w-full rounded-lg border border-cardBorder bg-white px-3 py-2 outline-none focus:border-gold"
+            />
+            <datalist id="sugestoes-estilo">
+              {SUGESTOES_ESTILO.map((e) => <option key={e} value={e} />)}
+            </datalist>
+          </div>
+        </div>
       </div>
 
       <div>

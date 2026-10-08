@@ -8,6 +8,8 @@ import { useCart } from "../context/CartContext";
 import { supabase } from "../../../config/supabase";
 import AddressForm from "../components/AddressForm";
 import PagamentoStep from "../components/PagamentoStep";
+import { LOJA } from "../../lib/loja";
+import { useConfiguracoes } from "../../lib/useConfiguracoes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashAlt, faMinus, faPlus, faTruckFast, faTag, faCartShopping, faPlus as faPlusIcon, faStore,
@@ -69,6 +71,7 @@ export default function Carrinho() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { items, updateQuantity, removeItem, subtotal, clearCart } = useCart();
+  const { freteGratisAcima, primeiraCompraPercent } = useConfiguracoes();
 
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -82,6 +85,7 @@ export default function Carrinho() {
   const [couponResult, setCouponResult] = useState(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
+  const [percentPrimeiraCompra, setPercentPrimeiraCompra] = useState(0);
   const [finalizando, setFinalizando] = useState(false);
   const [pedidoCriado, setPedidoCriado] = useState(null);
   const [erro, setErro] = useState("");
@@ -97,6 +101,18 @@ export default function Carrinho() {
       if (data?.length) setSelectedAddress(data.find((a) => a.is_default) ?? data[0]);
     }
     loadAddresses();
+  }, [user]);
+
+  useEffect(() => {
+    async function carregarPrimeiraCompra() {
+      if (!user) {
+        setPercentPrimeiraCompra(0);
+        return;
+      }
+      const { data } = await supabase.rpc("desconto_primeira_compra");
+      setPercentPrimeiraCompra(Number(data) || 0);
+    }
+    carregarPrimeiraCompra();
   }, [user]);
 
   const handleCepBlur = async () => {
@@ -118,13 +134,16 @@ export default function Carrinho() {
     setCouponResult(data[0]);
   };
 
-  const desconto = couponResult?.valid
+  const descontoCupom = couponResult?.valid
     ? couponResult.discount_type === "percent"
       ? (subtotal * Number(couponResult.discount_value)) / 100
       : Number(couponResult.discount_value)
     : 0;
+  const descontoPrimeiraCompra = (subtotal * percentPrimeiraCompra) / 100;
+  const usaPrimeiraCompra = descontoPrimeiraCompra > descontoCupom;
+  const desconto = Math.min(subtotal, Math.max(descontoCupom, descontoPrimeiraCompra));
 
-  const freteGratisPorValor = subtotal >= 1000;
+  const freteGratisPorValor = freteGratisAcima > 0 && subtotal >= freteGratisAcima;
   const freteValor = tipoEntrega === "retirada" ? 0 : freteGratisPorValor ? 0 : (selecionada?.preco ?? 0);
   const total = Math.max(0, subtotal - desconto) + freteValor;
 
@@ -159,7 +178,11 @@ export default function Carrinho() {
         frete_servico: tipoEntrega === "retirada" ? RETIRADA_SERVICO : selecionada?.servico ?? null,
         desconto,
         total,
-        coupon_code: couponResult?.valid ? coupon.trim().toUpperCase() : null,
+        coupon_code: usaPrimeiraCompra
+          ? "PRIMEIRA-COMPRA"
+          : couponResult?.valid
+          ? coupon.trim().toUpperCase()
+          : null,
       })
       .select()
       .single();
@@ -282,8 +305,8 @@ export default function Carrinho() {
 
             {tipoEntrega === "retirada" ? (
               <p className="mt-3 text-sm text-primary/60">
-                Sem custo de frete. Retire seu pedido diretamente na Fazenda Santo Antônio,
-                em Alagoa/MG. Combinamos o horário pelo WhatsApp depois que o pagamento for confirmado.
+                Sem custo de frete. Retire seu pedido diretamente na loja ({LOJA.endereco}).
+                Combinamos o horário pelo WhatsApp depois que o pagamento for confirmado.
               </p>
             ) : !user ? (
               <p className="mt-3 text-sm text-primary/60">
@@ -381,7 +404,11 @@ export default function Carrinho() {
 
           {desconto > 0 && (
             <div className="flex justify-between text-sm text-olive">
-              <span>Desconto ({coupon.toUpperCase()})</span>
+              <span>
+                {usaPrimeiraCompra
+                  ? `Desconto de primeira compra (${percentPrimeiraCompra}%)`
+                  : `Desconto (${coupon.toUpperCase()})`}
+              </span>
               <span>-{formatBRL(desconto)}</span>
             </div>
           )}
@@ -402,6 +429,13 @@ export default function Carrinho() {
           </div>
           {couponResult && (
             <p className={`text-xs ${couponResult.valid ? "text-olive" : "text-terracotta"}`}>{couponResult.message}</p>
+          )}
+
+          {!user && primeiraCompraPercent > 0 && (
+            <p className="text-xs text-olive">
+              Primeira compra? <Link href="/cadastro" className="font-semibold underline">Crie sua conta</Link> e
+              ganhe {primeiraCompraPercent}% de desconto.
+            </p>
           )}
 
           <div className="flex justify-between border-t border-cardBorder pt-4 font-display text-xl text-primary">

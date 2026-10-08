@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 const CartContext = createContext(null);
-const STORAGE_KEY = "fazenda-cart";
+const STORAGE_KEY = "loja-cart";
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
