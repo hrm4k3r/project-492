@@ -8,16 +8,14 @@ import { useCart } from "../context/CartContext";
 import { supabase } from "../../../config/supabase";
 import AddressForm from "../components/AddressForm";
 import PagamentoStep from "../components/PagamentoStep";
-import { LOJA } from "../../lib/loja";
+import { LOJA, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faTrashAlt, faMinus, faPlus, faTruckFast, faTag, faCartShopping, faPlus as faPlusIcon, faStore,
+  faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock,
 } from "@fortawesome/free-solid-svg-icons";
 
 const RETIRADA_SERVICO = "Retirada no local";
-
-const formatBRL = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function useFreteReal(cep, itens) {
   const [opcoes, setOpcoes] = useState([]);
@@ -74,7 +72,6 @@ export default function Carrinho() {
   const { freteGratisAcima, primeiraCompraPercent } = useConfiguracoes();
 
   const [cep, setCep] = useState("");
-  const [buscandoCep, setBuscandoCep] = useState(false);
   const [tipoEntrega, setTipoEntrega] = useState("entrega");
 
   const [addresses, setAddresses] = useState([]);
@@ -115,10 +112,6 @@ export default function Carrinho() {
     carregarPrimeiraCompra();
   }, [user]);
 
-  const handleCepBlur = async () => {
-    // o próprio hook de frete já dispara com o CEP digitado
-  };
-
   const handleApplyCoupon = async () => {
     if (!coupon.trim()) return;
     setCheckingCoupon(true);
@@ -151,7 +144,7 @@ export default function Carrinho() {
     setErro("");
 
     if (!user) {
-      router.push("/entrar");
+      router.push("/entrar?voltar=/carrinho");
       return;
     }
     if (tipoEntrega === "entrega") {
@@ -217,8 +210,8 @@ export default function Carrinho() {
 
   if (pedidoCriado) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-light px-5 py-16">
-        <div className="card-surface w-full max-w-lg p-8">
+      <div className="bg-light px-5 py-12 md:py-16">
+        <div className="mx-auto w-full max-w-2xl">
           <PagamentoStep order={pedidoCriado} />
         </div>
       </div>
@@ -228,159 +221,257 @@ export default function Carrinho() {
   if (items.length === 0) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-light px-5 py-16 text-center">
-        <FontAwesomeIcon icon={faCartShopping} className="text-4xl text-primary/30" />
-        <h1 className="font-display text-2xl text-primary">Seu carrinho está vazio</h1>
-        <Link href="/#produtos" className="btn-primary">Ver produtos</Link>
+        <Image src="/emblema-marrom.png" width={246} height={233} alt="" className="h-16 w-auto opacity-70" />
+        <h1 className="font-display text-4xl font-medium text-primary">Seu carrinho está vazio</h1>
+        <p className="max-w-sm text-primary/65">Que tal descobrir um novo rótulo para a sua mesa?</p>
+        <Link href="/produtos" className="btn-primary mt-2">Ver o catálogo</Link>
       </div>
     );
   }
 
-  return (
-    <div className="bg-light py-12 md:py-16">
-      <div className="container-page grid grid-cols-1 gap-10 md:grid-cols-[1.6fr_1fr]">
-        <div>
-          <h1 className="section-title">Carrinho</h1>
+  const faltaFreteGratis = Math.max(0, freteGratisAcima - subtotal);
+  const progressoFrete = freteGratisAcima > 0 ? Math.min(100, (subtotal / freteGratisAcima) * 100) : 0;
 
-          <div className="mt-6 flex flex-col gap-4">
+  const opcao = (ativa) =>
+    `flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all duration-300 ${
+      ativa ? "border-primary bg-white shadow-card" : "border-cardBorder bg-white/60 hover:border-gold"
+    }`;
+
+  const passo = (n, texto, ativo) => (
+    <li className="flex items-center gap-2">
+      <span
+        className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold ${
+          ativo ? "border-gold bg-gold text-primary" : "border-cream/40 text-cream/70"
+        }`}
+      >
+        {n}
+      </span>
+      <span className={ativo ? "text-cream" : "text-cream/60"}>{texto}</span>
+    </li>
+  );
+
+  return (
+    <div className="bg-light">
+      <section className="bg-brand text-cream">
+        <div className="container-page flex flex-col items-center gap-4 py-10 text-center md:py-12">
+          <h1 className="font-display text-4xl font-medium md:text-5xl">Seu carrinho</h1>
+          <ol className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.2em] md:gap-5">
+            {passo(1, "Carrinho", true)}
+            <span className="h-px w-5 bg-cream/30 md:w-8" />
+            {passo(2, "Entrega", false)}
+            <span className="h-px w-5 bg-cream/30 md:w-8" />
+            {passo(3, "Pix", false)}
+          </ol>
+        </div>
+      </section>
+
+      <div className="container-page grid grid-cols-1 gap-8 py-10 lg:grid-cols-[1fr_24rem] lg:items-start lg:gap-10 lg:py-14">
+        <div className="flex flex-col gap-6">
+          <section className="flex flex-col gap-4">
             {items.map((item) => (
-              <div key={item.id} className="card-surface flex items-center gap-4 p-4">
-                {item.foto && (
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-cream">
-                    <Image src={item.foto} alt={item.titulo} fill sizes="64px" className="object-cover" />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <p className="font-display text-base text-primary">{item.titulo}</p>
-                  <p className="text-sm text-terracotta">{formatBRL(item.preco)}</p>
+              <div key={item.id} className="card-surface flex flex-wrap items-center gap-x-5 gap-y-3 p-4">
+                <Link
+                  href={`/detalhes?id=${item.id}`}
+                  className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-sand"
+                >
+                  {item.foto && (
+                    <Image src={item.foto} alt={item.titulo} fill sizes="80px" className="object-cover" />
+                  )}
+                </Link>
+                <div className="min-w-0 flex-1 basis-40">
+                  <Link href={`/detalhes?id=${item.id}`}>
+                    <p className="font-display text-xl font-semibold leading-tight text-primary transition-colors hover:text-terracotta">
+                      {item.titulo}
+                    </p>
+                  </Link>
+                  <p className="mt-1 text-sm text-primary/60">{formatBRL(item.preco)} cada</p>
                 </div>
-                <div className="flex items-center gap-3 rounded-full border border-cardBorder px-3 py-1.5">
-                  <button aria-label="Diminuir" onClick={() => updateQuantity(item.id, item.quantidade - 1)} className="text-primary/60 hover:text-terracotta">
+                <div className="flex items-center gap-4 rounded-full border border-cardBorder px-4 py-2">
+                  <button
+                    aria-label="Diminuir"
+                    onClick={() => updateQuantity(item.id, item.quantidade - 1)}
+                    className="text-primary/60 transition-colors hover:text-terracotta"
+                  >
                     <FontAwesomeIcon icon={faMinus} />
                   </button>
-                  <span className="w-5 text-center text-sm">{item.quantidade}</span>
-                  <button aria-label="Aumentar" onClick={() => updateQuantity(item.id, item.quantidade + 1)} className="text-primary/60 hover:text-terracotta">
+                  <span className="w-5 text-center text-sm font-medium">{item.quantidade}</span>
+                  <button
+                    aria-label="Aumentar"
+                    onClick={() => updateQuantity(item.id, item.quantidade + 1)}
+                    className="text-primary/60 transition-colors hover:text-terracotta"
+                  >
                     <FontAwesomeIcon icon={faPlus} />
                   </button>
                 </div>
-                <p className="w-20 text-right font-semibold text-primary">{formatBRL(item.preco * item.quantidade)}</p>
-                <button aria-label="Remover" onClick={() => removeItem(item.id)} className="text-primary/40 hover:text-terracotta">
-                  <FontAwesomeIcon icon={faTrashAlt} />
+                <p className="w-24 text-right font-display text-xl font-semibold text-terracotta">
+                  {formatBRL(item.preco * item.quantidade)}
+                </p>
+                <button
+                  aria-label={`Remover ${item.titulo}`}
+                  onClick={() => removeItem(item.id)}
+                  className="text-primary/40 transition-colors hover:text-terracotta"
+                >
+                  <FontAwesomeIcon icon={faTrashCan} />
                 </button>
               </div>
             ))}
-          </div>
+          </section>
 
-          <div className="mt-8">
-            <h2 className="flex items-center gap-2 font-display text-lg text-primary">
-              <FontAwesomeIcon icon={faTruckFast} className="text-terracotta" />
-              Entrega
-            </h2>
+          <section className="card-surface p-5 md:p-6">
+            <h2 className="font-display text-2xl font-semibold text-primary">Como você quer receber?</h2>
 
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setTipoEntrega("entrega")}
-                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
-                  tipoEntrega === "entrega"
-                    ? "border-gold bg-gold/10 text-primary"
-                    : "border-cardBorder text-primary/60"
-                }`}
-              >
-                <FontAwesomeIcon icon={faTruckFast} className="mr-2" />
-                Receber em casa
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => setTipoEntrega("entrega")} className={opcao(tipoEntrega === "entrega")}>
+                <FontAwesomeIcon icon={faTruckFast} className="mt-1 text-lg text-terracotta" />
+                <span>
+                  <span className="block font-medium text-primary">Receber em casa</span>
+                  <span className="block text-sm text-primary/60">Frete calculado pelo seu CEP</span>
+                </span>
               </button>
-              <button
-                type="button"
-                onClick={() => setTipoEntrega("retirada")}
-                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
-                  tipoEntrega === "retirada"
-                    ? "border-gold bg-gold/10 text-primary"
-                    : "border-cardBorder text-primary/60"
-                }`}
-              >
-                <FontAwesomeIcon icon={faStore} className="mr-2" />
-                Retirar na loja
+              <button type="button" onClick={() => setTipoEntrega("retirada")} className={opcao(tipoEntrega === "retirada")}>
+                <FontAwesomeIcon icon={faStore} className="mt-1 text-lg text-terracotta" />
+                <span>
+                  <span className="block font-medium text-primary">Retirar na loja</span>
+                  <span className="block text-sm text-primary/60">Sem frete</span>
+                </span>
               </button>
             </div>
 
             {tipoEntrega === "retirada" ? (
-              <p className="mt-3 text-sm text-primary/60">
-                Sem custo de frete. Retire seu pedido diretamente na loja ({LOJA.endereco}).
-                Combinamos o horário pelo WhatsApp depois que o pagamento for confirmado.
+              <p className="mt-4 rounded-xl bg-sand p-4 text-sm leading-relaxed text-primary/75">
+                Retire seu pedido na loja ({LOJA.endereco}). Combinamos o
+                horário pelo WhatsApp depois que o pagamento for confirmado.
               </p>
-            ) : !user ? (
-              <p className="mt-3 text-sm text-primary/60">
-                Digite seu CEP para estimar o frete. Para finalizar a compra, você
-                vai precisar <Link href="/entrar" className="font-semibold text-terracotta">entrar ou criar uma conta</Link>.
-              </p>
-            ) : addresses.length > 0 && !showAddressForm ? (
-              <div className="mt-3 flex flex-col gap-2">
-                {addresses.map((addr) => (
-                  <label key={addr.id} className="card-surface flex items-center gap-3 p-3 text-sm">
+            ) : (
+              <div className="mt-5">
+                {!user ? (
+                  <>
+                    <label className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55" htmlFor="cep">
+                      Digite seu CEP para estimar o frete
+                    </label>
                     <input
-                      type="radio"
-                      checked={selectedAddress?.id === addr.id}
-                      onChange={() => setSelectedAddress(addr)}
+                      id="cep"
+                      value={cep}
+                      onChange={(e) => setCep(e.target.value)}
+                      placeholder="00000-000"
+                      inputMode="numeric"
+                      className="mt-1.5 w-full max-w-xs rounded-lg border border-cardBorder bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"
                     />
-                    <span>{addr.street}, {addr.number} &mdash; {addr.neighborhood}, {addr.city}/{addr.state} &mdash; CEP {addr.cep}</span>
-                  </label>
-                ))}
-                <button onClick={() => setShowAddressForm(true)} className="btn-outline mt-1 self-start text-xs">
-                  <FontAwesomeIcon icon={faPlusIcon} />
-                  Novo endereço
-                </button>
-              </div>
-            ) : user ? (
-              <div className="mt-3 card-surface p-4">
-                <AddressForm
-                  profileId={user.id}
-                  onSaved={(novo) => {
-                    setAddresses((a) => [...a, novo]);
-                    setSelectedAddress(novo);
-                    setShowAddressForm(false);
-                  }}
-                />
-              </div>
-            ) : null}
+                    <p className="mt-3 text-sm text-primary/60">
+                      Para finalizar a compra, você vai precisar{" "}
+                      <Link href="/entrar?voltar=/carrinho" className="font-medium text-terracotta underline">
+                        entrar ou criar uma conta
+                      </Link>
+                      .
+                    </p>
+                  </>
+                ) : addresses.length > 0 && !showAddressForm ? (
+                  <div className="flex flex-col gap-3">
+                    {addresses.map((addr) => (
+                      <label key={addr.id} className={opcao(selectedAddress?.id === addr.id)}>
+                        <input
+                          type="radio"
+                          name="endereco"
+                          className="mt-1 accent-[#5A2A14]"
+                          checked={selectedAddress?.id === addr.id}
+                          onChange={() => setSelectedAddress(addr)}
+                        />
+                        <span className="text-sm text-primary/80">
+                          <span className="block font-medium text-primary">
+                            {addr.street}, {addr.number}
+                            {addr.complement ? ` - ${addr.complement}` : ""}
+                          </span>
+                          {addr.neighborhood}, {addr.city}/{addr.state} &middot; CEP {addr.cep}
+                        </span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowAddressForm(true)} className="btn-outline self-start text-xs">
+                      <FontAwesomeIcon icon={faPlus} />
+                      Novo endereço
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-cardBorder bg-light p-4">
+                    <AddressForm
+                      profileId={user.id}
+                      onSaved={(novo) => {
+                        setAddresses((a) => [...a, novo]);
+                        setSelectedAddress(novo);
+                        setShowAddressForm(false);
+                      }}
+                    />
+                    {addresses.length > 0 && (
+                      <button onClick={() => setShowAddressForm(false)} className="mt-3 text-xs text-primary/60 underline">
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                )}
 
-            {tipoEntrega === "entrega" && !user && (
-              <div className="mt-3 flex max-w-xs gap-2">
-                <input
-                  value={cep}
-                  onChange={(e) => setCep(e.target.value)}
-                  onBlur={handleCepBlur}
-                  placeholder="Digite seu CEP"
-                  className="w-full rounded-lg border border-cardBorder bg-white px-3 py-2 text-sm outline-none focus:border-gold"
-                />
+                {loadingFrete && <p className="mt-4 text-sm text-primary/55">Calculando frete...</p>}
+
+                {!loadingFrete && opcoes.length > 0 && !freteGratisPorValor && (
+                  <div className="mt-5">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55">Opções de envio</p>
+                    <div className="mt-2 flex flex-col gap-3">
+                      {opcoes.map((op) => (
+                        <label
+                          key={op.servico}
+                          className={`${opcao(selecionada?.servico === op.servico)} items-center justify-between`}
+                        >
+                          <span className="flex items-center gap-3 text-sm">
+                            <input
+                              type="radio"
+                              name="frete"
+                              className="accent-[#5A2A14]"
+                              checked={selecionada?.servico === op.servico}
+                              onChange={() => setSelecionada(op)}
+                            />
+                            <span>
+                              <span className="block font-medium text-primary">{op.servico}</span>
+                              <span className="text-primary/60">
+                                {op.prazoDias} dia{op.prazoDias > 1 ? "s" : ""} para entrega
+                              </span>
+                            </span>
+                          </span>
+                          <span className="font-display text-lg font-semibold text-terracotta">{formatBRL(op.preco)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aviso && <p className="mt-3 text-xs text-primary/55">{aviso}</p>}
               </div>
             )}
-
-            {tipoEntrega === "entrega" && loadingFrete && <p className="mt-2 text-xs text-primary/50">Calculando frete...</p>}
-
-            {tipoEntrega === "entrega" && !loadingFrete && opcoes.length > 0 && !freteGratisPorValor && (
-              <div className="mt-3 flex flex-col gap-2">
-                {opcoes.map((op) => (
-                  <label key={op.servico} className="card-surface flex items-center justify-between gap-3 p-3 text-sm">
-                    <span className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        checked={selecionada?.servico === op.servico}
-                        onChange={() => setSelecionada(op)}
-                      />
-                      {op.servico} &middot; {op.prazoDias} dia{op.prazoDias > 1 ? "s" : ""}
-                    </span>
-                    <span className="font-semibold text-terracotta">{formatBRL(op.preco)}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {tipoEntrega === "entrega" && aviso && <p className="mt-2 text-xs text-primary/50">{aviso}</p>}
-          </div>
+          </section>
         </div>
 
-        <div className="card-surface flex flex-col gap-4 p-6">
-          <h2 className="font-display text-lg text-primary">Resumo</h2>
+        <aside className="card-surface flex flex-col gap-4 p-6 lg:sticky lg:top-44">
+          <h2 className="font-display text-2xl font-semibold text-primary">Resumo do pedido</h2>
+
+          {tipoEntrega === "entrega" && freteGratisAcima > 0 && (
+            <div className="rounded-xl bg-sand p-3.5">
+              <p className="text-sm text-primary/80">
+                {freteGratisPorValor ? (
+                  <span className="flex items-center gap-2 font-medium text-olive">
+                    <FontAwesomeIcon icon={faCheck} />
+                    Você ganhou frete grátis!
+                  </span>
+                ) : (
+                  <>
+                    Faltam <strong>{formatBRL(faltaFreteGratis)}</strong> para ganhar frete grátis.
+                  </>
+                )}
+              </p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+                <div
+                  className="h-full rounded-full bg-gold transition-all duration-500"
+                  style={{ width: `${progressoFrete}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-between text-sm text-primary/70">
             <span>Subtotal</span>
@@ -391,7 +482,7 @@ export default function Carrinho() {
             <span>Frete {tipoEntrega === "entrega" && selecionada?.servico ? `(${selecionada.servico})` : ""}</span>
             <span>
               {tipoEntrega === "retirada"
-                ? "Retirada no local"
+                ? "Retirada na loja"
                 : freteGratisPorValor
                 ? "Grátis"
                 : loadingFrete
@@ -403,11 +494,11 @@ export default function Carrinho() {
           </div>
 
           {desconto > 0 && (
-            <div className="flex justify-between text-sm text-olive">
+            <div className="flex justify-between text-sm font-medium text-olive">
               <span>
                 {usaPrimeiraCompra
-                  ? `Desconto de primeira compra (${percentPrimeiraCompra}%)`
-                  : `Desconto (${coupon.toUpperCase()})`}
+                  ? `Primeira compra (${percentPrimeiraCompra}%)`
+                  : `Cupom ${coupon.toUpperCase()}`}
               </span>
               <span>-{formatBRL(desconto)}</span>
             </div>
@@ -420,10 +511,11 @@ export default function Carrinho() {
                 value={coupon}
                 onChange={(e) => setCoupon(e.target.value)}
                 placeholder="Cupom de desconto"
-                className="w-full rounded-lg border border-cardBorder bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-gold"
+                aria-label="Cupom de desconto"
+                className="w-full rounded-lg border border-cardBorder bg-white py-2.5 pl-9 pr-3 text-sm uppercase outline-none placeholder:normal-case focus:border-gold"
               />
             </div>
-            <button onClick={handleApplyCoupon} disabled={checkingCoupon} className="btn-outline px-4 text-xs">
+            <button onClick={handleApplyCoupon} disabled={checkingCoupon} className="btn-outline px-5 !py-2.5 text-xs">
               {checkingCoupon ? "..." : "Aplicar"}
             </button>
           </div>
@@ -432,23 +524,38 @@ export default function Carrinho() {
           )}
 
           {!user && primeiraCompraPercent > 0 && (
-            <p className="text-xs text-olive">
-              Primeira compra? <Link href="/cadastro" className="font-semibold underline">Crie sua conta</Link> e
-              ganhe {primeiraCompraPercent}% de desconto.
+            <p className="rounded-xl bg-sand p-3 text-xs text-primary/75">
+              Primeira compra?{" "}
+              <Link href="/cadastro?voltar=/carrinho" className="font-semibold text-terracotta underline">
+                Crie sua conta
+              </Link>{" "}
+              e ganhe {primeiraCompraPercent}% de desconto.
             </p>
           )}
 
-          <div className="flex justify-between border-t border-cardBorder pt-4 font-display text-xl text-primary">
-            <span>Total</span>
-            <span className="text-terracotta">{formatBRL(total)}</span>
+          <div className="flex items-baseline justify-between border-t border-cardBorder pt-4">
+            <span className="font-display text-xl text-primary">Total</span>
+            <span className="font-display text-3xl font-semibold text-terracotta">{formatBRL(total)}</span>
           </div>
 
           {erro && <p className="text-sm text-terracotta">{erro}</p>}
 
-          <button onClick={handleFinalizar} disabled={finalizando || authLoading} className="btn-primary justify-center disabled:opacity-60">
-            {finalizando ? "Enviando..." : user ? "Finalizar Compra" : "Entrar para finalizar"}
+          <button
+            onClick={handleFinalizar}
+            disabled={finalizando || authLoading}
+            className="btn-primary justify-center !py-4 disabled:opacity-60"
+          >
+            {finalizando ? "Enviando..." : user ? "Finalizar e pagar com Pix" : "Entrar para finalizar"}
           </button>
-        </div>
+
+          <p className="flex items-center justify-center gap-2 text-center text-xs text-primary/55">
+            <FontAwesomeIcon icon={faLock} />
+            Pagamento por Pix, com QR Code gerado na hora.
+          </p>
+          <p className="text-center text-[11px] text-primary/45">
+            Venda proibida para menores de 18 anos. Beba com moderação.
+          </p>
+        </aside>
       </div>
     </div>
   );

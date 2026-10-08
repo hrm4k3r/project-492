@@ -3,8 +3,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../config/supabase";
+import { destinoSeguro, sufixoVoltar } from "../../lib/voltar";
+import AuthShell from "../components/AuthShell";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRightToBracket } from "@fortawesome/free-solid-svg-icons";
+
+const labelClass = "text-[11px] font-medium uppercase tracking-[0.18em] text-primary/60";
+const inputClass =
+  "mt-1.5 w-full rounded-lg border border-cardBorder bg-white px-4 py-3 text-primary outline-none transition-colors focus:border-gold";
 
 export default function Entrar() {
   const router = useRouter();
@@ -31,56 +37,45 @@ export default function Entrar() {
       setError(mensagens[error.message] ?? error.message);
       return;
     }
-    router.push("/conta");
+    router.push(destinoSeguro("/conta"));
   };
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center bg-light px-5 py-16">
-      <div className="card-surface w-full max-w-sm p-8">
-        <h1 className="text-center font-display text-2xl text-primary">Entrar</h1>
-        <p className="mt-2 text-center text-sm text-primary/60">
-          Acesse sua conta para ver seus pedidos.
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-          <div>
-            <label className="text-sm font-medium text-primary">E-mail</label>
-            <input
-              required
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="mt-1 w-full rounded-lg border border-cardBorder bg-cream px-4 py-2.5 text-primary outline-none focus:border-gold"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-primary">Senha</label>
-            <input
-              required
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              className="mt-1 w-full rounded-lg border border-cardBorder bg-cream px-4 py-2.5 text-primary outline-none focus:border-gold"
-            />
-          </div>
-
-          {error && <p className="text-sm text-terracotta">{error}</p>}
-
-          <button type="submit" disabled={loading} className="btn-primary mt-2 justify-center disabled:opacity-60">
-            {loading ? "Entrando..." : "Entrar"}
-            <FontAwesomeIcon icon={faRightToBracket} />
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-primary/60">
+    <AuthShell
+      titulo="Entrar"
+      subtitulo="Acesse sua conta para finalizar compras e ver seus pedidos."
+      rodape={
+        <>
           Ainda não tem conta?{" "}
-          <Link href="/cadastro" className="font-semibold text-terracotta">
+          <Link href={`/cadastro${sufixoVoltar()}`} className="font-semibold text-terracotta underline">
             Cadastre-se
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div>
+          <label htmlFor="email" className={labelClass}>E-mail</label>
+          <input
+            id="email" required type="email" name="email" autoComplete="email"
+            value={form.email} onChange={handleChange} className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className={labelClass}>Senha</label>
+          <input
+            id="password" required type="password" name="password" autoComplete="current-password"
+            value={form.password} onChange={handleChange} className={inputClass}
+          />
+        </div>
+
+        {error && <p className="rounded-lg bg-sand p-3 text-sm text-terracotta">{error}</p>}
+
+        <button type="submit" disabled={loading} className="btn-primary mt-1 justify-center !py-4 disabled:opacity-60">
+          {loading ? "Entrando..." : "Entrar"}
+          <FontAwesomeIcon icon={faRightToBracket} />
+        </button>
+      </form>
+    </AuthShell>
   );
 }
