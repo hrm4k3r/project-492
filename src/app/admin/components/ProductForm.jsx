@@ -6,6 +6,7 @@ import { supabase } from "../../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faTrashCan, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { CATEGORIAS, SUGESTOES_PAIS, SUGESTOES_ESTILO } from "../../../lib/loja";
+import { semOtimizar } from "../../../lib/imagem";
 import { cardClass, inputClass, labelClass } from "../ui";
 
 function Secao({ titulo, descricao, children }) {
@@ -189,7 +190,7 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
           <div className="grid grid-cols-3 gap-3">
             {form.imagens.map((img, i) => (
               <div key={img} className="group relative aspect-[4/5] overflow-hidden rounded-lg border border-cardBorder bg-sand">
-                <Image src={img} alt={`Foto ${i + 1}`} fill sizes="140px" className="object-cover" />
+                <Image src={img} alt={`Foto ${i + 1}`} fill sizes="140px" unoptimized={semOtimizar(img)} className="object-cover" />
                 {i === 0 && (
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gold">
                     Capa

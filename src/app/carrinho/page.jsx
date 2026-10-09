@@ -10,6 +10,7 @@ import AddressForm from "../components/AddressForm";
 import PagamentoStep from "../components/PagamentoStep";
 import { LOJA, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
+import { semOtimizar } from "../../lib/imagem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock,
@@ -275,7 +276,7 @@ export default function Carrinho() {
                   className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-sand"
                 >
                   {item.foto && (
-                    <Image src={item.foto} alt={item.titulo} fill sizes="80px" className="object-cover" />
+                    <Image src={item.foto} alt={item.titulo} fill sizes="80px" unoptimized={semOtimizar(item.foto)} className="object-cover" />
                   )}
                 </Link>
                 <div className="min-w-0 flex-1 basis-40">

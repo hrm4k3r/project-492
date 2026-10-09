@@ -5,7 +5,9 @@ import Link from "next/link";
 import { supabase } from "../../../../config/supabase";
 import { CATEGORIAS, formatBRL, nomeDaCategoria } from "../../../lib/loja";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faPen, faTrashCan, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faPen, faTrashCan, faMagnifyingGlass, faFileImport, faFileExport } from "@fortawesome/free-solid-svg-icons";
+import { baixarArquivo, gerarCSV, produtosParaLinhas } from "../../../lib/planilha";
+import { semOtimizar } from "../../../lib/imagem";
 import AdminTitulo from "../components/AdminTitulo";
 import { cardClass, inputClass } from "../ui";
 
@@ -63,6 +65,7 @@ export default function AdminProdutos() {
       if (categoria && categoria !== "sem" && p.categoria !== categoria) return false;
       if (situacao === "ativo" && !p.ativo) return false;
       if (situacao === "inativo" && p.ativo) return false;
+      if (situacao === "semfoto" && (p.imagens?.length ?? 0) > 0) return false;
       if (!termo) return true;
       return norm([p.produto, p.marca, p.pais, p.estilo].join(" ")).includes(termo);
     });
@@ -81,6 +84,18 @@ export default function AdminProdutos() {
   return (
     <div>
       <AdminTitulo titulo="Produtos" descricao="Cadastre e organize os rótulos da loja.">
+        <button
+          onClick={() => baixarArquivo("produtos.csv", gerarCSV(produtosParaLinhas(produtos)))}
+          disabled={produtos.length === 0}
+          className="btn-outline !py-2.5 text-xs disabled:opacity-40"
+        >
+          <FontAwesomeIcon icon={faFileExport} />
+          Exportar
+        </button>
+        <Link href="/admin/produtos/importar" className="btn-outline !py-2.5 text-xs">
+          <FontAwesomeIcon icon={faFileImport} />
+          Importar planilha
+        </Link>
         <Link href="/admin/produtos/novo" className="btn-primary !py-2.5 text-xs">
           <FontAwesomeIcon icon={faPlus} />
           Novo produto
@@ -119,6 +134,7 @@ export default function AdminProdutos() {
           <option value="">Ativos e inativos</option>
           <option value="ativo">Só ativos</option>
           <option value="inativo">Só inativos</option>
+          <option value="semfoto">Sem foto</option>
         </select>
       </div>
 
@@ -149,7 +165,7 @@ export default function AdminProdutos() {
                     <div className="flex items-center gap-3">
                       <div className="relative h-14 w-11 shrink-0 overflow-hidden rounded-md bg-sand">
                         {p.imagens?.[0] && (
-                          <Image src={p.imagens[0]} alt="" fill sizes="44px" className="object-cover" />
+                          <Image src={p.imagens[0]} alt="" fill sizes="44px" unoptimized={semOtimizar(p.imagens[0])} className="object-cover" />
                         )}
                       </div>
                       <div className="min-w-0">

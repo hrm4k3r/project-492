@@ -12,6 +12,7 @@ import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { useCart } from "../context/CartContext";
 import { ProdutoCard, ProdutoCardSkeleton } from "../components/ProdutoCard";
 import { formatBRL, nomeDaCategoria, whatsappLink } from "../../lib/loja";
+import { semOtimizar } from "../../lib/imagem";
 
 const isPremiado = (text = "") => /pr[eê]mio|premiad/i.test(text);
 
@@ -115,6 +116,7 @@ export default function Detalhes() {
           <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-cardBorder bg-sand shadow-card">
             <Image
               src={imagens[activeImage]}
+              unoptimized={semOtimizar(imagens[activeImage])}
               alt={produto.produto}
               fill
               priority
@@ -139,7 +141,7 @@ export default function Detalhes() {
                     i === activeImage ? "border-terracotta" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <Image src={img} alt="" fill sizes="64px" className="object-cover" />
+                  <Image src={img} alt="" fill sizes="64px" unoptimized={semOtimizar(img)} className="object-cover" />
                 </button>
               ))}
             </div>

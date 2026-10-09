@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAward, faCartPlus, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useCart } from "../context/CartContext";
 import { formatBRL } from "../../lib/loja";
+import { semOtimizar } from "../../lib/imagem";
 
 const isPremiado = (text = "") => /pr[eê]mio|premiad/i.test(text);
 
@@ -26,6 +27,7 @@ export function ProdutoCard({ produto }) {
       <Link href={`/detalhes?id=${id}`} className="relative block aspect-[4/5] overflow-hidden bg-sand">
         <Image
           src={imagens[0]}
+          unoptimized={semOtimizar(imagens[0])}
           alt={titulo}
           fill
           sizes="(min-width: 768px) 25vw, 50vw"
