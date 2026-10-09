@@ -1,12 +1,10 @@
-import Footer from './components/Footer'
-import NavBar from './components/NavBar'
+import ShellPublico from './components/ShellPublico'
 import '../app/styles/globals.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { config } from '@fortawesome/fontawesome-svg-core'
 import { Cormorant_Garamond, Jost, Pinyon_Script } from 'next/font/google'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
-import AgeGate from './components/AgeGate'
 
 config.autoAddCss = false
 
@@ -39,10 +37,7 @@ export default function RootLayout({ children }) {
       >
         <AuthProvider>
           <CartProvider>
-            <AgeGate />
-            <NavBar />
-            {children}
-            <Footer />
+            <ShellPublico>{children}</ShellPublico>
           </CartProvider>
         </AuthProvider>
       </body>

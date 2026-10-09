@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../../config/supabase";
 import ProductForm from "../../components/ProductForm";
+import AdminTitulo from "../../components/AdminTitulo";
 
 export default function NovoProduto() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function NovoProduto() {
 
   return (
     <div>
-      <h1 className="section-title">Novo produto</h1>
+      <AdminTitulo titulo="Novo produto" descricao="Preencha as informações do rótulo e adicione as fotos." />
       <div className="mt-8">
         <ProductForm onSubmit={handleSubmit} submitLabel="Criar produto" />
       </div>

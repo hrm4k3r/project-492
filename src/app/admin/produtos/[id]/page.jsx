@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../../config/supabase";
 import ProductForm from "../../components/ProductForm";
+import AdminTitulo from "../../components/AdminTitulo";
 
 export default function EditarProduto() {
   const { id } = useParams();
@@ -33,7 +34,7 @@ export default function EditarProduto() {
 
   return (
     <div>
-      <h1 className="section-title">Editar produto</h1>
+      <AdminTitulo titulo="Editar produto" descricao={produto.produto} />
       <div className="mt-8">
         <ProductForm initialData={produto} onSubmit={handleSubmit} submitLabel="Salvar alterações" />
       </div>

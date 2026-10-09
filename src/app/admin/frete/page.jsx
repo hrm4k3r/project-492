@@ -3,9 +3,13 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faTrash, faFloppyDisk, faLink, faCheck, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import {
+  faPlus, faTrashCan, faFloppyDisk, faLink, faCheck, faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
+import AdminTitulo from "../components/AdminTitulo";
+import { cardClass, inputClass, labelClass } from "../ui";
 
-const emptyRule = { regiao: "", estados: "", preco: "", prazo_dias: "", ordem: 0, ativo: true };
+const regraVazia = { regiao: "", estados: "", preco: "", prazo_dias: "", ordem: "" };
 
 function ConexaoMelhorEnvio() {
   const searchParams = useSearchParams();
@@ -18,30 +22,33 @@ function ConexaoMelhorEnvio() {
       .catch(() => setStatus({ conectado: false }));
   }, []);
 
-  const resultadoRedirect = searchParams.get("melhorenvio");
+  const resultado = searchParams.get("melhorenvio");
 
   return (
-    <div className="card-surface mb-8 flex flex-wrap items-center justify-between gap-3 p-4">
+    <div className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
       <div>
-        <p className="font-display text-lg text-primary">Melhor Envio</p>
+        <p className="font-display text-2xl font-semibold text-primary">Melhor Envio</p>
         {status === null ? (
           <p className="text-sm text-primary/60">Verificando conexão...</p>
         ) : status.conectado ? (
           <p className="flex items-center gap-2 text-sm text-olive">
             <FontAwesomeIcon icon={faCheck} />
-            Conectado {status.conectadoEm ? `desde ${new Date(status.conectadoEm).toLocaleDateString("pt-BR")}` : ""}
+            Conectado{status.conectadoEm ? ` desde ${new Date(status.conectadoEm).toLocaleDateString("pt-BR")}` : ""}.
+            O frete é calculado automaticamente.
           </p>
         ) : (
-          <p className="text-sm text-primary/60">Ainda não conectado — o cálculo automático de frete não está ativo.</p>
+          <p className="text-sm text-primary/60">
+            Ainda não conectado. Enquanto isso, o carrinho usa a tabela de regiões abaixo.
+          </p>
         )}
-        {resultadoRedirect === "erro" && (
+        {resultado === "erro" && (
           <p className="mt-1 flex items-center gap-2 text-sm text-terracotta">
             <FontAwesomeIcon icon={faTriangleExclamation} />
             Não foi possível conectar ({searchParams.get("motivo")}).
           </p>
         )}
       </div>
-      <a href="/api/melhorenvio/conectar" className="btn-outline text-sm">
+      <a href="/api/melhorenvio/conectar" className="btn-outline !py-2.5 text-xs">
         <FontAwesomeIcon icon={faLink} />
         {status?.conectado ? "Reconectar" : "Conectar Melhor Envio"}
       </a>
@@ -50,129 +57,181 @@ function ConexaoMelhorEnvio() {
 }
 
 export default function AdminFrete() {
-  const [rules, setRules] = useState([]);
-  const [novo, setNovo] = useState(emptyRule);
+  const [regras, setRegras] = useState([]);
+  const [nova, setNova] = useState(regraVazia);
   const [loading, setLoading] = useState(true);
 
-  const loadRules = async () => {
+  const carregar = async () => {
     const { data } = await supabase.from("freight_rules").select("*").order("ordem", { ascending: true });
-    setRules(data ?? []);
+    setRegras(data ?? []);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadRules();
+    carregar();
   }, []);
 
-  const updateRule = (id, field, value) => {
-    setRules((rs) => rs.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  const editar = (id, campo, valor) => {
+    setRegras((rs) => rs.map((r) => (r.id === id ? { ...r, [campo]: valor } : r)));
   };
 
-  const saveRule = async (rule) => {
-    await supabase.from("freight_rules").update({
-      regiao: rule.regiao,
-      preco: Number(rule.preco),
-      prazo_dias: Number(rule.prazo_dias),
-      ordem: Number(rule.ordem),
-      ativo: rule.ativo,
-    }).eq("id", rule.id);
-    loadRules();
+  const salvar = async (regra) => {
+    const { error } = await supabase
+      .from("freight_rules")
+      .update({
+        regiao: regra.regiao,
+        preco: Number(regra.preco),
+        prazo_dias: Number(regra.prazo_dias),
+        ordem: Number(regra.ordem),
+        ativo: regra.ativo,
+      })
+      .eq("id", regra.id);
+    if (error) {
+      alert("Não foi possível salvar a regra: " + error.message);
+      return;
+    }
+    carregar();
   };
 
-  const deleteRule = async (id) => {
+  const remover = async (id) => {
     if (!confirm("Remover essa regra de frete?")) return;
-    await supabase.from("freight_rules").delete().eq("id", id);
-    loadRules();
+    const { error } = await supabase.from("freight_rules").delete().eq("id", id);
+    if (error) {
+      alert("Não foi possível remover a regra: " + error.message);
+      return;
+    }
+    carregar();
   };
 
-  const addRule = async (e) => {
+  const adicionar = async (e) => {
     e.preventDefault();
-    const estados = novo.estados.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
-    await supabase.from("freight_rules").insert({
-      regiao: novo.regiao,
+    const estados = nova.estados.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    const { error } = await supabase.from("freight_rules").insert({
+      regiao: nova.regiao,
       estados,
-      preco: Number(novo.preco),
-      prazo_dias: Number(novo.prazo_dias) || 7,
-      ordem: Number(novo.ordem) || 99,
+      preco: Number(nova.preco),
+      prazo_dias: Number(nova.prazo_dias) || 7,
+      ordem: Number(nova.ordem) || 99,
     });
-    setNovo(emptyRule);
-    loadRules();
+    if (error) {
+      alert("Não foi possível adicionar a regra: " + error.message);
+      return;
+    }
+    setNova(regraVazia);
+    carregar();
   };
 
   return (
     <div>
-      <h1 className="section-title">Frete</h1>
-      <p className="mt-2 max-w-xl text-primary/60">
-        Tabela fixa por região, usada até integrarmos o cálculo automático
-        (Melhor Envio). A regra com menor &quot;ordem&quot; é testada primeiro;
-        deixe os estados em branco na última regra para servir de padrão
-        (&quot;demais estados&quot;).
-      </p>
+      <AdminTitulo
+        titulo="Frete"
+        descricao="Conexão com o Melhor Envio e a tabela de regiões usada como reserva."
+      />
 
-      <div className="mt-6">
+      <div className="mt-8">
         <ConexaoMelhorEnvio />
       </div>
 
+      <h2 className="mt-10 font-display text-3xl font-semibold text-primary">Tabela por região</h2>
+      <p className="mt-2 max-w-2xl text-sm text-primary/60">
+        Usada quando o cálculo automático não está disponível. A regra com menor &quot;ordem&quot; é testada
+        primeiro; deixe os estados em branco na última regra para servir de padrão (&quot;demais estados&quot;).
+      </p>
+
       {loading ? (
-        <p className="mt-8 text-primary/60">Carregando...</p>
+        <p className="mt-6 text-primary/60">Carregando...</p>
       ) : (
-        <div className="mt-8 flex flex-col gap-3">
-          {rules.map((rule) => (
-            <div key={rule.id} className="card-surface flex flex-wrap items-center gap-3 p-4">
-              <input
-                value={rule.regiao}
-                onChange={(e) => updateRule(rule.id, "regiao", e.target.value)}
-                className="min-w-[180px] flex-1 rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold"
-              />
-              <span className="text-xs text-primary/50">UF: {rule.estados?.join(", ") || "todos"}</span>
-              <input
-                type="number" step="0.01"
-                value={rule.preco}
-                onChange={(e) => updateRule(rule.id, "preco", e.target.value)}
-                className="w-24 rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold"
-              />
-              <input
-                type="number"
-                value={rule.prazo_dias}
-                onChange={(e) => updateRule(rule.id, "prazo_dias", e.target.value)}
-                className="w-20 rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold"
-                title="Prazo em dias"
-              />
-              <label className="flex items-center gap-1.5 text-xs text-primary/70">
-                <input type="checkbox" checked={rule.ativo} onChange={(e) => updateRule(rule.id, "ativo", e.target.checked)} />
-                Ativo
-              </label>
-              <button onClick={() => saveRule(rule)} className="text-olive hover:text-terracotta">
-                <FontAwesomeIcon icon={faFloppyDisk} />
-              </button>
-              <button onClick={() => deleteRule(rule.id)} className="text-primary/50 hover:text-terracotta">
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
+        <div className="mt-5 flex flex-col gap-3">
+          {regras.map((regra) => (
+            <div key={regra.id} className={`${cardClass} grid items-end gap-4 !py-4 md:grid-cols-[1.6fr_auto_6rem_5.5rem_4.5rem_auto]`}>
+              <div>
+                <label className={labelClass}>Região</label>
+                <input
+                  value={regra.regiao} onChange={(e) => editar(regra.id, "regiao", e.target.value)}
+                  className={`${inputClass} mt-1.5`}
+                />
+              </div>
+              <p className="pb-3 text-xs text-primary/50">UF: {regra.estados?.join(", ") || "todas"}</p>
+              <div>
+                <label className={labelClass}>Preço</label>
+                <input
+                  type="number" step="0.01" value={regra.preco}
+                  onChange={(e) => editar(regra.id, "preco", e.target.value)} className={`${inputClass} mt-1.5`}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Prazo (dias)</label>
+                <input
+                  type="number" value={regra.prazo_dias}
+                  onChange={(e) => editar(regra.id, "prazo_dias", e.target.value)} className={`${inputClass} mt-1.5`}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Ordem</label>
+                <input
+                  type="number" value={regra.ordem}
+                  onChange={(e) => editar(regra.id, "ordem", e.target.value)} className={`${inputClass} mt-1.5`}
+                />
+              </div>
+              <div className="flex items-center gap-4 pb-2.5">
+                <label className="flex items-center gap-1.5 text-xs text-primary/70">
+                  <input
+                    type="checkbox" checked={regra.ativo} onChange={(e) => editar(regra.id, "ativo", e.target.checked)}
+                    className="accent-[#5A2A14]"
+                  />
+                  Ativa
+                </label>
+                <button onClick={() => salvar(regra)} aria-label="Salvar regra" className="text-olive transition-colors hover:text-terracotta">
+                  <FontAwesomeIcon icon={faFloppyDisk} />
+                </button>
+                <button onClick={() => remover(regra.id)} aria-label="Remover regra" className="text-primary/45 transition-colors hover:text-terracotta">
+                  <FontAwesomeIcon icon={faTrashCan} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      <form onSubmit={addRule} className="card-surface mt-6 flex flex-wrap items-end gap-3 p-4">
-        <div className="flex-1 min-w-[180px]">
-          <label className="text-xs text-primary/60">Região</label>
-          <input required value={novo.regiao} onChange={(e) => setNovo({ ...novo, regiao: e.target.value })} className="mt-1 w-full rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold" />
+      <form onSubmit={adicionar} className={`${cardClass} mt-6 grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-[1.6fr_1fr_7rem_6rem_5rem_auto]`}>
+        <div>
+          <label htmlFor="regiao" className={labelClass}>Nova região</label>
+          <input
+            id="regiao" required value={nova.regiao} onChange={(e) => setNova({ ...nova, regiao: e.target.value })}
+            className={`${inputClass} mt-1.5`}
+          />
         </div>
         <div>
-          <label className="text-xs text-primary/60">UF (separadas por vírgula)</label>
-          <input value={novo.estados} onChange={(e) => setNovo({ ...novo, estados: e.target.value })} placeholder="MG, SP" className="mt-1 w-32 rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold" />
+          <label htmlFor="estados" className={labelClass}>UF (vírgula)</label>
+          <input
+            id="estados" value={nova.estados} onChange={(e) => setNova({ ...nova, estados: e.target.value })}
+            placeholder="MG, SP" className={`${inputClass} mt-1.5`}
+          />
         </div>
         <div>
-          <label className="text-xs text-primary/60">Preço (R$)</label>
-          <input required type="number" step="0.01" value={novo.preco} onChange={(e) => setNovo({ ...novo, preco: e.target.value })} className="mt-1 w-24 rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold" />
+          <label htmlFor="preco" className={labelClass}>Preço (R$)</label>
+          <input
+            id="preco" required type="number" step="0.01" min="0" value={nova.preco}
+            onChange={(e) => setNova({ ...nova, preco: e.target.value })} className={`${inputClass} mt-1.5`}
+          />
         </div>
         <div>
-          <label className="text-xs text-primary/60">Prazo (dias)</label>
-          <input type="number" value={novo.prazo_dias} onChange={(e) => setNovo({ ...novo, prazo_dias: e.target.value })} className="mt-1 w-20 rounded-lg border border-cardBorder px-3 py-2 text-sm outline-none focus:border-gold" />
+          <label htmlFor="prazo" className={labelClass}>Prazo (dias)</label>
+          <input
+            id="prazo" type="number" min="1" value={nova.prazo_dias}
+            onChange={(e) => setNova({ ...nova, prazo_dias: e.target.value })} className={`${inputClass} mt-1.5`}
+          />
         </div>
-        <button type="submit" className="btn-outline text-sm">
+        <div>
+          <label htmlFor="ordem" className={labelClass}>Ordem</label>
+          <input
+            id="ordem" type="number" value={nova.ordem}
+            onChange={(e) => setNova({ ...nova, ordem: e.target.value })} className={`${inputClass} mt-1.5`}
+          />
+        </div>
+        <button type="submit" className="btn-primary !py-3 text-xs">
           <FontAwesomeIcon icon={faPlus} />
-          Adicionar regra
+          Adicionar
         </button>
       </form>
     </div>
