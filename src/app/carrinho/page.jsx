@@ -213,8 +213,8 @@ export default function Carrinho() {
 
     if (!res.ok || !data.url) {
       setErro(
-        "Pedido registrado, mas não foi possível gerar o link de pagamento. " +
-        "Acesse Minha conta para pagar."
+        `Erro ao gerar link de pagamento: ${data.error ?? "resposta inesperada (sem url)"}. ` +
+        "Acesse Minha conta para tentar novamente."
       );
       setFinalizando(false);
       return;
