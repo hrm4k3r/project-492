@@ -7,7 +7,8 @@ import { faBagShopping, faBars, faXmark } from "@fortawesome/free-solid-svg-icon
 import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { CATEGORIAS, LOJA, whatsappLink } from "../../lib/loja";
+import { LOJA, whatsappLink } from "../../lib/loja";
+import { useCategorias } from "../../lib/useCategorias";
 
 const itemClass =
   "rounded-lg px-3 py-3 font-sans text-[13px] font-medium uppercase tracking-[0.16em] text-cream/90 transition-colors duration-300 hover:bg-gold/10 hover:text-gold";
@@ -16,6 +17,7 @@ export default function NavMobile() {
   const [showSidebar, setShowSidebar] = useState(false);
   const { user } = useAuth();
   const { totalItens } = useCart();
+  const categorias = useCategorias();
   const fechar = () => setShowSidebar(false);
 
   const principais = [
@@ -85,7 +87,7 @@ export default function NavMobile() {
           <p className="mt-6 px-3 font-sans text-[11px] uppercase tracking-[0.28em] text-gold">
             Categorias
           </p>
-          {CATEGORIAS.map((c) => (
+          {categorias.map((c) => (
             <Link
               key={c.slug}
               href={`/produtos?categoria=${c.slug}`}

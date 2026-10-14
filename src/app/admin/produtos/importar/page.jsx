@@ -2,9 +2,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../../../../config/supabase";
-import { CATEGORIAS, formatBRL } from "../../../../lib/loja";
+import { formatBRL } from "../../../../lib/loja";
+import { useCategorias } from "../../../../lib/useCategorias";
 import {
-  baixarArquivo, interpretarPlanilha, modeloCSV, nomeDoArquivo, resolverFotos,
+  baixarArquivo, interpretarPlanilha, produtosParaLinhas, modeloCSV, nomeDoArquivo, resolverFotos,
 } from "../../../../lib/planilha";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -21,9 +22,9 @@ function lerArquivoTexto(buffer) {
   }
 }
 
-const nomeCategoria = (slug) => CATEGORIAS.find((c) => c.slug === slug)?.nome ?? "-";
-
 export default function ImportarProdutos() {
+  const categorias = useCategorias();
+  const nomeCategoria = (slug) => categorias.find((c) => c.slug === slug)?.nome ?? "-";
   const [nomeArquivo, setNomeArquivo] = useState("");
   const [analise, setAnalise] = useState(null);
   const [fotos, setFotos] = useState(new Map());
@@ -41,7 +42,7 @@ export default function ImportarProdutos() {
     setNomeArquivo(arquivo.name);
     const texto = lerArquivoTexto(await arquivo.arrayBuffer());
     const { data } = await supabase.from("produtos").select("id, produto, imagens, ativo");
-    setAnalise(interpretarPlanilha(texto, data ?? []));
+    setAnalise(interpretarPlanilha(texto, data ?? [], categorias));
     setLendo(false);
   };
 

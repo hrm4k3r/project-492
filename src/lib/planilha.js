@@ -37,8 +37,9 @@ export const DIMENSOES_PADRAO = {
   "cervejas-nacionais": { peso_kg: 0.8, altura_cm: 30, largura_cm: 10, comprimento_cm: 10 },
   "cervejas-importadas": { peso_kg: 0.8, altura_cm: 30, largura_cm: 10, comprimento_cm: 10 },
   vinhos: { peso_kg: 1.6, altura_cm: 35, largura_cm: 10, comprimento_cm: 10 },
-  queijos: { peso_kg: 0.5, altura_cm: 10, largura_cm: 15, comprimento_cm: 15 },
-  cafes: { peso_kg: 0.35, altura_cm: 15, largura_cm: 10, comprimento_cm: 6 },
+  queijos: { peso_kg: 0.5,  altura_cm: 10, largura_cm: 15, comprimento_cm: 15 },
+  cafes:   { peso_kg: 0.35, altura_cm: 15, largura_cm: 10, comprimento_cm: 6  },
+  doces:   { peso_kg: 0.3,  altura_cm: 8,  largura_cm: 12, comprimento_cm: 12 },
 };
 
 export const norm = (s = "") =>
@@ -115,16 +116,17 @@ export function lerNumero(valor) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-export function resolverCategoria(texto) {
+export function resolverCategoria(texto, categorias = CATEGORIAS) {
   const t = norm(texto);
   if (!t) return null;
-  const exata = CATEGORIAS.find((c) => c.slug === t || norm(c.nome) === t);
+  const exata = categorias.find((c) => c.slug === t || norm(c.nome) === t);
   if (exata) return exata.slug;
   if (t.includes("import")) return "cervejas-importadas";
   if (t.includes("nacion") || t.includes("artesanal")) return "cervejas-nacionais";
   if (t.startsWith("vinh")) return "vinhos";
   if (t.startsWith("quei")) return "queijos";
   if (t.startsWith("caf")) return "cafes";
+  if (t.startsWith("doce") || t.includes("confeit")) return "doces";
   return null;
 }
 
@@ -145,7 +147,7 @@ export function separarFotos(valor) {
 const ehURL = (f) => /^https?:\/\//i.test(f);
 export const nomeDoArquivo = (f) => norm(f.split(/[\\/]/).pop());
 
-export function interpretarPlanilha(texto, produtosExistentes = []) {
+export function interpretarPlanilha(texto, produtosExistentes = [], categorias = CATEGORIAS) {
   const linhas = lerCSV(texto);
   if (linhas.length < 2) {
     return { erroGeral: "A planilha está vazia. Preencha pelo menos uma linha abaixo do cabeçalho.", linhas: [] };
@@ -176,7 +178,7 @@ export function interpretarPlanilha(texto, produtosExistentes = []) {
     const preco = lerNumero(pega("preco"));
     if (preco === null || Number.isNaN(preco) || preco <= 0) erros.push("Preço inválido");
 
-    const categoria = resolverCategoria(pega("categoria"));
+    const categoria = resolverCategoria(pega("categoria"), categorias);
     if (!categoria) erros.push(pega("categoria") ? `Categoria "${pega("categoria")}" não reconhecida` : "Categoria em branco");
 
     const chave = norm(nome);
@@ -272,10 +274,10 @@ export function modeloCSV() {
   ]);
 }
 
-export function produtosParaLinhas(produtos) {
+export function produtosParaLinhas(produtos, categorias = CATEGORIAS) {
   return produtos.map((p) => [
     p.produto,
-    CATEGORIAS.find((c) => c.slug === p.categoria)?.nome ?? "",
+    categorias.find((c) => c.slug === p.categoria)?.nome ?? "",
     String(p.valor).replace(".", ","),
     p.marca,
     p.pais,

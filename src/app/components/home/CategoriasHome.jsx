@@ -1,19 +1,26 @@
+"use client";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faBeerMugEmpty, faEarthAmericas, faWineGlass, faCheese, faMugHot, faArrowRight,
+  faBeerMugEmpty, faEarthAmericas, faWineGlass, faCheese, faMugHot, faCookieBite,
+  faArrowRight, faBoxOpen,
 } from "@fortawesome/free-solid-svg-icons";
-import { CATEGORIAS } from "../../../lib/loja";
+import { useCategorias } from "../../../lib/useCategorias";
 
-const detalhes = {
+const icones = {
   "cervejas-nacionais": { icon: faBeerMugEmpty, texto: "Rótulos brasileiros com personalidade" },
   "cervejas-importadas": { icon: faEarthAmericas, texto: "Clássicos e descobertas do mundo" },
-  vinhos: { icon: faWineGlass, texto: "Selecionados por origem e perfil" },
-  queijos: { icon: faCheese, texto: "Para acompanhar cada rótulo" },
-  cafes: { icon: faMugHot, texto: "Especiais, com origem e sabor" },
+  vinhos:  { icon: faWineGlass,    texto: "Selecionados por origem e perfil" },
+  queijos: { icon: faCheese,       texto: "Para acompanhar cada rótulo" },
+  cafes:   { icon: faMugHot,       texto: "Especiais, com origem e sabor" },
+  doces:   { icon: faCookieBite,   texto: "Artesanais e especiais para a mesa" },
 };
 
+const fallback = { icon: faBoxOpen, texto: "" };
+
 export default function CategoriasHome() {
+  const categorias = useCategorias();
+
   return (
     <section className="bg-light py-20 md:py-24">
       <div className="container-page">
@@ -24,8 +31,8 @@ export default function CategoriasHome() {
         </div>
 
         <div className="mt-12 flex flex-wrap justify-center gap-4 md:gap-5">
-          {CATEGORIAS.map((c) => {
-            const d = detalhes[c.slug];
+          {categorias.map((c) => {
+            const d = icones[c.slug] ?? fallback;
             return (
               <Link
                 key={c.slug}
@@ -38,7 +45,9 @@ export default function CategoriasHome() {
                 <h3 className="mt-5 font-display text-[1.35rem] font-semibold leading-tight text-primary">
                   {c.nome}
                 </h3>
-                <p className="mt-2 flex-1 text-sm leading-snug text-primary/60">{d.texto}</p>
+                <p className="mt-2 flex-1 text-sm leading-snug text-primary/60">
+                  {d.texto || c.descricao}
+                </p>
                 <span className="mt-4 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-terracotta">
                   Ver
                   <FontAwesomeIcon icon={faArrowRight} className="transition-transform duration-300 group-hover:translate-x-1" />

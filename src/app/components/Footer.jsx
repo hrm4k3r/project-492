@@ -1,15 +1,18 @@
+"use client";
 import Image from "next/image";
 import Link from "next/link";
 import rixxer from "../../../public/rixxer.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
-import { CATEGORIAS, LOJA, whatsappLink } from "../../lib/loja";
+import { LOJA, whatsappLink } from "../../lib/loja";
+import { useCategorias } from "../../lib/useCategorias";
 
 const linkClass = "text-sm text-cream/80 transition-colors duration-300 hover:text-gold";
 const tituloClass = "font-sans text-[11px] font-medium uppercase tracking-[0.28em] text-gold";
 
 export default function Footer() {
+  const categorias = useCategorias();
   const ano = new Date().getFullYear();
 
   return (
@@ -31,7 +34,7 @@ export default function Footer() {
 
         <div className="flex flex-col items-center gap-3 text-center md:items-start md:text-left">
           <h2 className={tituloClass}>Catálogo</h2>
-          {CATEGORIAS.map((c) => (
+          {categorias.map((c) => (
             <Link key={c.slug} href={`/produtos?categoria=${c.slug}`} className={linkClass}>
               {c.nome}
             </Link>

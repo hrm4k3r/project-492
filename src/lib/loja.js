@@ -24,7 +24,8 @@ export const CATEGORIAS = [
   },
   { slug: "vinhos", nome: "Vinhos", descricao: "Vinhos selecionados por origem, uva e perfil." },
   { slug: "queijos", nome: "Queijos", descricao: "Queijos para acompanhar cada rótulo da mesa." },
-  { slug: "cafes", nome: "Cafés", descricao: "Cafés especiais, escolhidos pela origem e pelo sabor." },
+  { slug: "cafes",   nome: "Cafés",   descricao: "Cafés especiais, escolhidos pela origem e pelo sabor." },
+  { slug: "doces",   nome: "Doces",   descricao: "Doces artesanais e especiais para adoçar a sua mesa." },
 ];
 
 export const DESCRICAO_CATALOGO =

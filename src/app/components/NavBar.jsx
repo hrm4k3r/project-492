@@ -7,8 +7,9 @@ import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import NavMobile from "./NavMobile";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { CATEGORIAS, LOJA, whatsappLink, formatBRL } from "../../lib/loja";
+import { LOJA, whatsappLink, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
+import { useCategorias } from "../../lib/useCategorias";
 
 const CustomLink = ({ title, link }) => (
   <Link
@@ -23,6 +24,7 @@ export default function NavBar() {
   const { user, profile } = useAuth();
   const { totalItens } = useCart();
   const { freteGratisAcima, primeiraCompraPercent } = useConfiguracoes();
+  const categorias = useCategorias();
 
   const avisos = [
     "Entregamos para todo o Brasil",
@@ -104,7 +106,7 @@ export default function NavBar() {
 
         <div className="border-t border-gold/20">
           <div className="mx-auto flex max-w-7xl items-center justify-center gap-9 px-8 py-2.5">
-            {CATEGORIAS.map((c) => (
+            {categorias.map((c) => (
               <Link
                 key={c.slug}
                 href={`/produtos?categoria=${c.slug}`}

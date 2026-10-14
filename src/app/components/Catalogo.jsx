@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../config/supabase";
-import { CATEGORIAS, DESCRICAO_CATALOGO, nomeDaCategoria, whatsappLink } from "../../lib/loja";
+import { DESCRICAO_CATALOGO, whatsappLink } from "../../lib/loja";
+import { useCategorias } from "../../lib/useCategorias";
 import { ProdutoCard, ProdutoCardSkeleton } from "./ProdutoCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass, faSliders } from "@fortawesome/free-solid-svg-icons";
@@ -42,7 +43,8 @@ export default function Catalogo() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoria = searchParams.get("categoria") ?? "";
-  const categoriaAtual = CATEGORIAS.find((c) => c.slug === categoria);
+  const categorias = useCategorias();
+  const categoriaAtual = categorias.find((c) => c.slug === categoria);
 
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export default function Catalogo() {
           <button onClick={() => escolherCategoria("")} className={chip(!categoria)}>
             Todos {!loading && contador(produtos.length)}
           </button>
-          {CATEGORIAS.map((c) => (
+          {categorias.map((c) => (
             <button key={c.slug} onClick={() => escolherCategoria(c.slug)} className={chip(categoria === c.slug)}>
               {c.nome} {!loading && contador(contagem[c.slug] ?? 0)}
             </button>
@@ -320,7 +322,7 @@ export default function Catalogo() {
                     : filtrosAtivos
                     ? "Nenhum produto combina com esses filtros. Que tal ajustar a busca?"
                     : categoria
-                    ? `Estamos preparando a seleção de ${nomeDaCategoria(categoria).toLowerCase()}.`
+                    ? `Estamos preparando a seleção de ${(categoriaAtual?.nome ?? categoria).toLowerCase()}.`
                     : "Estamos preparando a curadoria. Volte em breve!"}
                 </p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">

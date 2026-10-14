@@ -5,7 +5,8 @@ import Link from "next/link";
 import { supabase } from "../../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faTrashCan, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { CATEGORIAS, SUGESTOES_PAIS, SUGESTOES_ESTILO } from "../../../lib/loja";
+import { SUGESTOES_PAIS, SUGESTOES_ESTILO } from "../../../lib/loja";
+import { useCategorias } from "../../../lib/useCategorias";
 import { semOtimizar } from "../../../lib/imagem";
 import { cardClass, inputClass, labelClass } from "../ui";
 
@@ -44,6 +45,7 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
     largura_cm: initialData?.largura_cm ?? 15,
     comprimento_cm: initialData?.comprimento_cm ?? 15,
   });
+  const categorias = useCategorias();
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -136,7 +138,7 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
             <Campo label="Categoria" htmlFor="categoria">
               <select id="categoria" required name="categoria" value={form.categoria} onChange={handleChange} className={inputClass}>
                 <option value="">Selecione...</option>
-                {CATEGORIAS.map((c) => (
+                {categorias.map((c) => (
                   <option key={c.slug} value={c.slug}>{c.nome}</option>
                 ))}
               </select>
