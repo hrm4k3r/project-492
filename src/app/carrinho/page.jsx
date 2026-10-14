@@ -202,8 +202,6 @@ export default function Carrinho() {
       return;
     }
 
-    clearCart();
-
     // Cria o link de pagamento InfinitePay e redireciona
     const res = await fetch("/api/pagamento/criar", {
       method: "POST",
@@ -222,6 +220,7 @@ export default function Carrinho() {
       return;
     }
 
+    clearCart();
     window.location.href = data.url;
   };
 
