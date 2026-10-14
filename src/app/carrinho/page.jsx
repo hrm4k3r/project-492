@@ -7,13 +7,12 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../../../config/supabase";
 import AddressForm from "../components/AddressForm";
-import PagamentoStep from "../components/PagamentoStep";
 import { LOJA, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
 import { semOtimizar } from "../../lib/imagem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock,
+  faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock, faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 
 const RETIRADA_SERVICO = "Retirada no local";
@@ -85,7 +84,6 @@ export default function Carrinho() {
 
   const [percentPrimeiraCompra, setPercentPrimeiraCompra] = useState(0);
   const [finalizando, setFinalizando] = useState(false);
-  const [pedidoCriado, setPedidoCriado] = useState(null);
   const [erro, setErro] = useState("");
 
   const cepAtivo = tipoEntrega === "retirada" ? "" : selectedAddress?.cep || cep;
@@ -204,20 +202,28 @@ export default function Carrinho() {
       return;
     }
 
-    setPedidoCriado(order);
     clearCart();
-    setFinalizando(false);
-  };
 
-  if (pedidoCriado) {
-    return (
-      <div className="bg-light px-5 py-12 md:py-16">
-        <div className="mx-auto w-full max-w-2xl">
-          <PagamentoStep order={pedidoCriado} />
-        </div>
-      </div>
-    );
-  }
+    // Cria o link de pagamento InfinitePay e redireciona
+    const res = await fetch("/api/pagamento/criar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: order.id }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.url) {
+      setErro(
+        "Pedido registrado, mas não foi possível gerar o link de pagamento. " +
+        "Acesse Minha conta para pagar."
+      );
+      setFinalizando(false);
+      return;
+    }
+
+    window.location.href = data.url;
+  };
 
   if (items.length === 0) {
     return (
@@ -261,7 +267,7 @@ export default function Carrinho() {
             <span className="h-px w-5 bg-cream/30 md:w-8" />
             {passo(2, "Entrega", false)}
             <span className="h-px w-5 bg-cream/30 md:w-8" />
-            {passo(3, "Pix", false)}
+            {passo(3, "Pagamento", false)}
           </ol>
         </div>
       </section>
@@ -546,12 +552,21 @@ export default function Carrinho() {
             disabled={finalizando || authLoading}
             className="btn-primary justify-center !py-4 disabled:opacity-60"
           >
-            {finalizando ? "Enviando..." : user ? "Finalizar e pagar com Pix" : "Entrar para finalizar"}
+            {finalizando ? (
+              "Preparando pagamento..."
+            ) : user ? (
+              <>
+                Finalizar e ir para pagamento
+                <FontAwesomeIcon icon={faArrowRight} />
+              </>
+            ) : (
+              "Entrar para finalizar"
+            )}
           </button>
 
           <p className="flex items-center justify-center gap-2 text-center text-xs text-primary/55">
             <FontAwesomeIcon icon={faLock} />
-            Pagamento por Pix, com QR Code gerado na hora.
+            Pagamento seguro via InfinitePay. Pix ou cartão de crédito.
           </p>
           <p className="text-center text-[11px] text-primary/45">
             Venda proibida para menores de 18 anos. Beba com moderação.

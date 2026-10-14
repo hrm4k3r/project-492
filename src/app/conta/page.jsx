@@ -8,10 +8,9 @@ import { supabase } from "../../../config/supabase";
 import { formatBRL } from "../../lib/loja";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faRightFromBracket, faPlus, faLocationDot, faBoxOpen, faTrashCan, faStore, faQrcode, faXmark,
+  faRightFromBracket, faPlus, faLocationDot, faBoxOpen, faTrashCan, faStore, faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 import AddressForm from "../components/AddressForm";
-import PagamentoStep from "../components/PagamentoStep";
 
 const statusInfo = {
   pendente: { label: "Aguardando pagamento", classe: "bg-gold/25 text-terracotta" },
@@ -49,7 +48,7 @@ export default function Conta() {
   const [addresses, setAddresses] = useState([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const [pagandoId, setPagandoId] = useState(null);
+  const [pagandoId, setPagandoId] = useState(null); // guarda o id enquanto redireciona
   const [erroEndereco, setErroEndereco] = useState("");
 
   useEffect(() => {
@@ -57,6 +56,25 @@ export default function Conta() {
       router.push("/entrar?voltar=/conta");
     }
   }, [loading, user, router]);
+
+  const irParaPagamento = async (order) => {
+    setPagandoId(order.id);
+    try {
+      const res = await fetch("/api/pagamento/criar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setPagandoId(null);
+      }
+    } catch {
+      setPagandoId(null);
+    }
+  };
 
   const carregarEnderecos = async () => {
     const { data } = await supabase.from("addresses").select("*").eq("profile_id", user.id);
@@ -191,20 +209,22 @@ export default function Conta() {
                       <p className="font-display text-2xl font-semibold text-terracotta">{formatBRL(order.total)}</p>
                       {order.status === "pendente" && (
                         <button
-                          onClick={() => setPagandoId(pagandoId === order.id ? null : order.id)}
-                          className="btn-primary !py-2.5 text-xs"
+                          onClick={() => irParaPagamento(order)}
+                          disabled={pagandoId === order.id}
+                          className="btn-primary !py-2.5 text-xs disabled:opacity-60"
                         >
-                          <FontAwesomeIcon icon={pagandoId === order.id ? faXmark : faQrcode} />
-                          {pagandoId === order.id ? "Fechar" : "Pagar com Pix"}
+                          {pagandoId === order.id ? (
+                            "Aguarde..."
+                          ) : (
+                            <>
+                              Ir para pagamento
+                              <FontAwesomeIcon icon={faArrowRight} />
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
 
-                    {pagandoId === order.id && (
-                      <div className="mt-5">
-                        <PagamentoStep order={order} nivelTitulo="h2" />
-                      </div>
-                    )}
                   </div>
                 );
               })}
