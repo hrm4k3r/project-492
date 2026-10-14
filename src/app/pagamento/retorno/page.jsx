@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,7 +17,7 @@ import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 const POLL_INTERVAL = 3000; // 3 segundos
 const POLL_MAX = 10;        // máx. 30 segundos de polling
 
-export default function RetornoPagamento() {
+function RetornoConteudo() {
   const params = useSearchParams();
   const orderId = params.get("pedido");
 
@@ -185,5 +185,20 @@ export default function RetornoPagamento() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RetornoPagamento() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 bg-light px-5 py-16 text-center">
+          <FontAwesomeIcon icon={faArrowRotateRight} className="animate-spin text-3xl text-gold" />
+          <p className="text-primary/65">Verificando pagamento...</p>
+        </div>
+      }
+    >
+      <RetornoConteudo />
+    </Suspense>
   );
 }
