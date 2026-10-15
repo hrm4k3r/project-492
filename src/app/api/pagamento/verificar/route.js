@@ -43,7 +43,11 @@ export async function POST(request) {
       return Response.json({ status: "pago" });
     }
 
-    return Response.json({ status: order.status, mpStatus: payment.status });
+    if (payment.status === "rejected" || payment.status === "cancelled") {
+      return Response.json({ status: "rejeitado", statusDetail: payment.status_detail });
+    }
+
+    return Response.json({ status: "pendente", mpStatus: payment.status });
   } catch (err) {
     console.error("Erro ao verificar pagamento:", err);
     return Response.json({ status: "erro", error: err.message }, { status: 500 });

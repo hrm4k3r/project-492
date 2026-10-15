@@ -17,6 +17,7 @@ export default function PaginaPagamento() {
   const [pago, setPago] = useState(false);
   const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false);
   const [paymentId, setPaymentId] = useState(null);
+  const [erroCartao, setErroCartao] = useState("");
 
   useEffect(() => {
     if (!orderId) return;
@@ -45,6 +46,10 @@ export default function PaginaPagamento() {
         const data = await res.json();
         if (data.status === "pago") {
           setPago(true);
+          setAguardandoConfirmacao(false);
+        } else if (data.status === "rejeitado") {
+          setErroCartao("Pagamento recusado. Verifique os dados ou tente outro cartão.");
+          setAguardandoConfirmacao(false);
         }
       } catch {
         // ignora erros de rede, tenta novamente
@@ -107,6 +112,14 @@ export default function PaginaPagamento() {
           <p className="mt-1 text-sm text-primary/60">
             Pague com cartão de crédito, débito ou Pix. Tudo seguro via Mercado Pago.
           </p>
+          {erroCartao && (
+            <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+              {erroCartao}{" "}
+              <button className="underline" onClick={() => { setErroCartao(""); setAguardandoConfirmacao(false); }}>
+                Tentar novamente
+              </button>
+            </div>
+          )}
           <div className="mt-6">
             <PagamentoBrick
               orderId={orderId}
