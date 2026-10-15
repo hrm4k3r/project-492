@@ -31,22 +31,27 @@ export default function PaginaPagamento() {
       });
   }, [orderId]);
 
-  // Polling: verifica status após pagamento com cartão (webhook pode demorar alguns segundos)
+  // Polling: verifica status diretamente no MP a cada 3s (até 20 tentativas = 60s)
   useEffect(() => {
     if (!aguardandoConfirmacao || pago) return;
     let tentativas = 0;
     const intervalo = setInterval(async () => {
       tentativas++;
-      const { data } = await supabase
-        .from("orders")
-        .select("status")
-        .eq("id", orderId)
-        .single();
-      if (data?.status === "pago") {
-        setPago(true);
-        clearInterval(intervalo);
+      try {
+        const res = await fetch("/api/pagamento/verificar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        });
+        const data = await res.json();
+        if (data.status === "pago") {
+          setPago(true);
+          clearInterval(intervalo);
+        }
+      } catch {
+        // ignora erros de rede, tenta novamente
       }
-      if (tentativas >= 10) clearInterval(intervalo); // Para após 30s
+      if (tentativas >= 20) clearInterval(intervalo); // Para após 60s
     }, 3000);
     return () => clearInterval(intervalo);
   }, [aguardandoConfirmacao, pago, orderId]);
