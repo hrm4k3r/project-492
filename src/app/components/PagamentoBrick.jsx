@@ -24,7 +24,7 @@ function TabBtn({ ativa, onClick, icon, children }) {
   );
 }
 
-function PixSection({ orderId, onPago }) {
+function PixSection({ orderId, onPago, onProcessando }) {
   const [pixData, setPixData] = useState(null);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState("");
@@ -47,6 +47,7 @@ function PixSection({ orderId, onPago }) {
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar Pix");
       if (!data.pixQrCode) throw new Error("QR Code não retornado pelo servidor");
       setPixData(data);
+      onProcessando?.(); // inicia polling para detectar pagamento
     } catch (err) {
       setErro(err.message);
     }
@@ -171,7 +172,7 @@ export default function PagamentoBrick({ orderId, total, onPago, onProcessando }
         </TabBtn>
       </div>
 
-      {modo === "pix" && <PixSection orderId={orderId} onPago={onPago} />}
+      {modo === "pix" && <PixSection orderId={orderId} onPago={onPago} onProcessando={onProcessando} />}
 
       {modo === "card" && (
         <div>
