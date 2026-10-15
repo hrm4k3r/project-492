@@ -12,7 +12,7 @@ function supabaseAdmin() {
 // Usado pelo polling da página de pagamento — não depende do webhook chegar.
 export async function POST(request) {
   try {
-    const { orderId } = await request.json();
+    const { orderId, paymentId: clientPaymentId } = await request.json();
     if (!orderId) return Response.json({ status: "erro" }, { status: 400 });
 
     const db = supabaseAdmin();
@@ -28,11 +28,12 @@ export async function POST(request) {
     // Já confirmado no banco
     if (order.status === "pago") return Response.json({ status: "pago" });
 
-    // Ainda não tem payment_id (pagamento não foi criado ainda)
-    if (!order.payment_id) return Response.json({ status: order.status });
+    // Usa paymentId passado pelo frontend ou o salvo no banco
+    const mpPaymentId = clientPaymentId ?? order.payment_id;
+    if (!mpPaymentId) return Response.json({ status: order.status });
 
     // Consulta o MP diretamente
-    const payment = await buscarPagamento(order.payment_id);
+    const payment = await buscarPagamento(String(mpPaymentId));
 
     if (payment.status === "approved") {
       await db

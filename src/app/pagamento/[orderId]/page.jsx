@@ -16,6 +16,7 @@ export default function PaginaPagamento() {
   const [loading, setLoading] = useState(true);
   const [pago, setPago] = useState(false);
   const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false);
+  const [paymentId, setPaymentId] = useState(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -41,7 +42,7 @@ export default function PaginaPagamento() {
         const res = await fetch("/api/pagamento/verificar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId }),
+          body: JSON.stringify({ orderId, paymentId }),
         });
         const data = await res.json();
         if (data.status === "pago") {
@@ -54,7 +55,7 @@ export default function PaginaPagamento() {
       if (tentativas >= 20) clearInterval(intervalo); // Para após 60s
     }, 3000);
     return () => clearInterval(intervalo);
-  }, [aguardandoConfirmacao, pago, orderId]);
+  }, [aguardandoConfirmacao, pago, orderId, paymentId]);
 
   if (authLoading || loading) {
     return (
@@ -115,7 +116,7 @@ export default function PaginaPagamento() {
               orderId={orderId}
               total={order.total}
               onPago={() => { setPago(true); setAguardandoConfirmacao(false); }}
-              onProcessando={() => setAguardandoConfirmacao(true)}
+              onProcessando={(id) => { setPaymentId(id); setAguardandoConfirmacao(true); }}
             />
           </div>
         </div>

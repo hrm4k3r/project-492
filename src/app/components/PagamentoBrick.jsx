@@ -47,7 +47,7 @@ function PixSection({ orderId, onPago, onProcessando }) {
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar Pix");
       if (!data.pixQrCode) throw new Error("QR Code não retornado pelo servidor");
       setPixData(data);
-      onProcessando?.(); // inicia polling para detectar pagamento
+      onProcessando?.(data.paymentId); // passa paymentId para o polling
     } catch (err) {
       setErro(err.message);
     }
@@ -137,8 +137,7 @@ export default function PagamentoBrick({ orderId, total, onPago, onProcessando }
             return;
           }
           if (data.status === "in_process" || data.status === "pending") {
-            // Anti-fraude em análise — polling vai confirmar via webhook
-            onProcessando?.();
+            onProcessando?.(data.paymentId);
             resolve();
             return;
           }

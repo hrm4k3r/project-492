@@ -75,6 +75,7 @@ export async function POST(request) {
       result.pixQrCodeBase64 = payment.point_of_interaction.transaction_data.qr_code_base64;
     }
 
+    result.paymentId = payment.id;
     return Response.json(result);
   } catch (err) {
     console.error("Erro ao criar pagamento MP:", err);
