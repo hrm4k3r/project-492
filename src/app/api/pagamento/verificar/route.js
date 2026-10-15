@@ -19,7 +19,7 @@ export async function POST(request) {
 
     const { data: order } = await db
       .from("orders")
-      .select("status, payment_id")
+      .select("status")
       .eq("id", orderId)
       .single();
 
@@ -28,8 +28,8 @@ export async function POST(request) {
     // Já confirmado no banco
     if (order.status === "pago") return Response.json({ status: "pago" });
 
-    // Usa paymentId passado pelo frontend ou o salvo no banco
-    const mpPaymentId = clientPaymentId ?? order.payment_id;
+    // Precisa do paymentId para consultar o MP
+    const mpPaymentId = clientPaymentId;
     if (!mpPaymentId) return Response.json({ status: order.status });
 
     // Consulta o MP diretamente
