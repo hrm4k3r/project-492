@@ -32,12 +32,10 @@ export default function PaginaPagamento() {
       });
   }, [orderId]);
 
-  // Polling: verifica status diretamente no MP a cada 3s (até 20 tentativas = 60s)
+  // Polling: verifica status no MP a cada 5s até confirmar ou o usuário sair da página
   useEffect(() => {
     if (!aguardandoConfirmacao || pago) return;
-    let tentativas = 0;
     const intervalo = setInterval(async () => {
-      tentativas++;
       try {
         const res = await fetch("/api/pagamento/verificar", {
           method: "POST",
@@ -47,13 +45,11 @@ export default function PaginaPagamento() {
         const data = await res.json();
         if (data.status === "pago") {
           setPago(true);
-          clearInterval(intervalo);
         }
       } catch {
         // ignora erros de rede, tenta novamente
       }
-      if (tentativas >= 20) clearInterval(intervalo); // Para após 60s
-    }, 3000);
+    }, 5000);
     return () => clearInterval(intervalo);
   }, [aguardandoConfirmacao, pago, orderId, paymentId]);
 
