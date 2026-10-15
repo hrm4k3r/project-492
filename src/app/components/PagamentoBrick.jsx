@@ -13,32 +13,34 @@ export default function PagamentoBrick({ orderId, total, onPago }) {
   const [copiado, setCopiado] = useState(false);
   const [brickReady, setBrickReady] = useState(false);
 
-  const onSubmit = async ({ selectedPaymentMethod, formData }) => {
-    const res = await fetch("/api/pagamento/criar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, selectedPaymentMethod, formData }),
+  const onSubmit = ({ selectedPaymentMethod, formData }) =>
+    new Promise((resolve, reject) => {
+      fetch("/api/pagamento/criar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, selectedPaymentMethod, formData }),
+      })
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) {
+            reject(new Error(data.error ?? "Erro ao processar pagamento"));
+            return;
+          }
+          if (data.pixQrCode) {
+            setPixData(data);
+            resolve();
+            return;
+          }
+          if (["approved", "in_process", "pending"].includes(data.status)) {
+            setAprovado(true);
+            onPago?.();
+            resolve();
+            return;
+          }
+          reject(new Error("Pagamento recusado. Verifique os dados ou tente outro método."));
+        })
+        .catch((err) => reject(err));
     });
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error ?? "Erro ao processar pagamento");
-    }
-
-    if (data.pixQrCode) {
-      setPixData(data);
-      return;
-    }
-
-    // approved, in_process ou pending — tratamos como confirmado
-    if (["approved", "in_process", "pending"].includes(data.status)) {
-      setAprovado(true);
-      onPago?.();
-      return;
-    }
-
-    throw new Error("Pagamento recusado. Verifique os dados ou tente outro método.");
-  };
 
   const copiarPix = () => {
     navigator.clipboard.writeText(pixData.pixQrCode).then(() => {
