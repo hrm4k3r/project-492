@@ -202,26 +202,8 @@ export default function Carrinho() {
       return;
     }
 
-    // Cria o link de pagamento InfinitePay e redireciona
-    const res = await fetch("/api/pagamento/criar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId: order.id }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.url) {
-      setErro(
-        `Erro ao gerar link de pagamento: ${data.error ?? "resposta inesperada (sem url)"}. ` +
-        "Acesse Minha conta para tentar novamente."
-      );
-      setFinalizando(false);
-      return;
-    }
-
     clearCart();
-    window.location.href = data.url;
+    router.push(`/pagamento/${order.id}`);
   };
 
   if (items.length === 0) {
@@ -565,7 +547,7 @@ export default function Carrinho() {
 
           <p className="flex items-center justify-center gap-2 text-center text-xs text-primary/55">
             <FontAwesomeIcon icon={faLock} />
-            Pagamento seguro via InfinitePay. Pix ou cartão de crédito.
+            Pagamento seguro via Mercado Pago. Pix ou cartão.
           </p>
           <p className="text-center text-[11px] text-primary/45">
             Venda proibida para menores de 18 anos. Beba com moderação.

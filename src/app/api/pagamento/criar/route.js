@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { criarLinkPagamento } from "@/lib/infinitepay";
+import { criarPagamento } from "@/lib/mercadopago";
 
-// Cliente com service role — bypassa RLS para leitura de perfil e atualização do pedido.
 function supabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,16 +10,20 @@ function supabaseAdmin() {
 
 export async function POST(request) {
   try {
-    const { orderId } = await request.json();
-    if (!orderId) {
-      return Response.json({ error: "orderId obrigatório" }, { status: 400 });
+    const { orderId, selectedPaymentMethod, formData } = await request.json();
+
+    if (!orderId || !selectedPaymentMethod || !formData) {
+      return Response.json(
+        { error: "orderId, selectedPaymentMethod e formData são obrigatórios" },
+        { status: 400 }
+      );
     }
 
     const db = supabaseAdmin();
 
     const { data: order, error: orderError } = await db
       .from("orders")
-      .select("id, total, profile_id")
+      .select("id, total, profile_id, status")
       .eq("id", orderId)
       .single();
 
@@ -28,54 +31,53 @@ export async function POST(request) {
       return Response.json({ error: "Pedido não encontrado" }, { status: 404 });
     }
 
-    // Busca perfil para pré-preencher o checkout InfinitePay
-    const { data: profile } = await db
-      .from("profiles")
-      .select("full_name, phone")
-      .eq("id", order.profile_id)
-      .single();
-
-    const { data: authUser } = await db.auth.admin.getUserById(order.profile_id);
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-    if (!baseUrl) {
-      return Response.json({ error: "NEXT_PUBLIC_SITE_URL não configurado" }, { status: 500 });
+    if (order.status === "pago") {
+      return Response.json({ error: "Pedido já pago" }, { status: 409 });
     }
 
-    const result = await criarLinkPagamento({
+    // Busca e-mail do pagador via auth
+    const { data: authUser } = await db.auth.admin.getUserById(order.profile_id);
+    const payerEmail = authUser?.user?.email || formData.payer?.email;
+    const payerIdentification = formData.payer?.identification;
+
+    const payment = await criarPagamento({
       orderId,
       total: order.total,
-      customer: {
-        name: profile?.full_name,
-        email: authUser?.user?.email,
-        phone: profile?.phone,
-      },
-      redirectUrl: `${baseUrl}/pagamento/retorno?pedido=${orderId}`,
-      webhookUrl: `${baseUrl}/api/pagamento/webhook`,
+      payerEmail,
+      payerIdentification,
+      selectedPaymentMethod,
+      formData,
     });
 
-    // Persiste o slug/id do link para correlacionar com o webhook depois
+    const isApproved = payment.status === "approved";
+    const isPending = payment.status === "in_process" || payment.status === "pending";
+
     await db
       .from("orders")
       .update({
-        payment_provider: "infinitepay",
-        payment_id: result.slug ?? result.id ?? null,
+        payment_provider: "mercadopago",
+        payment_id: String(payment.id),
+        ...(isApproved ? { status: "pago", payment_status: "pago" } : {}),
       })
       .eq("id", orderId);
 
-    // A InfinitePay retorna a URL de checkout no campo `url`
-    const checkoutUrl = result.url ?? result.checkout_url ?? result.link;
-    if (!checkoutUrl) {
-      console.error("InfinitePay: campo url ausente na resposta", result);
-      return Response.json(
-        { error: "Resposta inesperada da InfinitePay — campo url não encontrado" },
-        { status: 502 }
-      );
+    const result = {
+      status: payment.status,
+      statusDetail: payment.status_detail,
+    };
+
+    // Retorna QR code para Pix
+    if (
+      payment.payment_method_id === "pix" &&
+      payment.point_of_interaction?.transaction_data
+    ) {
+      result.pixQrCode = payment.point_of_interaction.transaction_data.qr_code;
+      result.pixQrCodeBase64 = payment.point_of_interaction.transaction_data.qr_code_base64;
     }
 
-    return Response.json({ url: checkoutUrl });
+    return Response.json(result);
   } catch (err) {
-    console.error("Erro ao criar link InfinitePay:", err);
+    console.error("Erro ao criar pagamento MP:", err);
     return Response.json({ error: err.message }, { status: 500 });
   }
 }

@@ -57,23 +57,8 @@ export default function Conta() {
     }
   }, [loading, user, router]);
 
-  const irParaPagamento = async (order) => {
-    setPagandoId(order.id);
-    try {
-      const res = await fetch("/api/pagamento/criar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setPagandoId(null);
-      }
-    } catch {
-      setPagandoId(null);
-    }
+  const irParaPagamento = (order) => {
+    router.push(`/pagamento/${order.id}`);
   };
 
   const carregarEnderecos = async () => {
