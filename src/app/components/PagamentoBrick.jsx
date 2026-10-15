@@ -107,7 +107,7 @@ export default function PagamentoBrick({ orderId, total, onPago }) {
         initialization={{ amount: total }}
         customization={{
           paymentMethods: {
-            ticket: "all",
+            bankTransfer: "all",
             creditCard: "all",
             debitCard: "all",
             maxInstallments: 12,

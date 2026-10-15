@@ -32,9 +32,9 @@ export async function criarPagamento({
     body.payment_method_id = formData.payment_method_id;
     body.installments = Number(formData.installments) || 1;
     if (formData.issuer_id) body.issuer_id = String(formData.issuer_id);
-  } else if (selectedPaymentMethod === "ticket") {
-    // Pix ou boleto
-    body.payment_method_id = formData.payment_method_id;
+  } else if (selectedPaymentMethod === "ticket" || selectedPaymentMethod === "bank_transfer") {
+    // Boleto ou Pix
+    body.payment_method_id = formData.payment_method_id ?? "pix";
   }
 
   const res = await fetch(`${MP_BASE}/v1/payments`, {
