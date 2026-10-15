@@ -78,6 +78,10 @@ export async function POST(request) {
     return Response.json(result);
   } catch (err) {
     console.error("Erro ao criar pagamento MP:", err);
-    return Response.json({ error: err.message }, { status: 500 });
+    // Inclui stack em dev ou mensagem detalhada em prod para facilitar debug
+    return Response.json(
+      { error: err.message, detail: err.cause ?? err.stack?.split("\n")[0] ?? null },
+      { status: 500 }
+    );
   }
 }
