@@ -15,6 +15,7 @@ export default function PaginaPagamento() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pago, setPago] = useState(false);
+  const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -29,6 +30,26 @@ export default function PaginaPagamento() {
         setLoading(false);
       });
   }, [orderId]);
+
+  // Polling: verifica status após pagamento com cartão (webhook pode demorar alguns segundos)
+  useEffect(() => {
+    if (!aguardandoConfirmacao || pago) return;
+    let tentativas = 0;
+    const intervalo = setInterval(async () => {
+      tentativas++;
+      const { data } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", orderId)
+        .single();
+      if (data?.status === "pago") {
+        setPago(true);
+        clearInterval(intervalo);
+      }
+      if (tentativas >= 10) clearInterval(intervalo); // Para após 30s
+    }, 3000);
+    return () => clearInterval(intervalo);
+  }, [aguardandoConfirmacao, pago, orderId]);
 
   if (authLoading || loading) {
     return (
@@ -88,7 +109,8 @@ export default function PaginaPagamento() {
             <PagamentoBrick
               orderId={orderId}
               total={order.total}
-              onPago={() => setPago(true)}
+              onPago={() => { setPago(true); setAguardandoConfirmacao(false); }}
+              onProcessando={() => setAguardandoConfirmacao(true)}
             />
           </div>
         </div>
