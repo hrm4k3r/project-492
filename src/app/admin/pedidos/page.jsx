@@ -47,10 +47,19 @@ export default function AdminPedidos() {
 
   const atualizarStatus = async (id, status) => {
     setSalvandoId(id);
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch(`/api/pedidos/${id}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
     setSalvandoId(null);
-    if (error) {
-      alert("Não foi possível atualizar o pedido: " + error.message);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      alert("Não foi possível atualizar o pedido: " + (err.error ?? resp.statusText));
       return;
     }
     setPedidos((lista) => lista.map((p) => (p.id === id ? { ...p, status } : p)));
