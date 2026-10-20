@@ -1,4 +1,4 @@
-import ShellPublico from './components/ShellPublico'
+import ShellPublico from './components/ShellPublico' 
 import '../app/styles/globals.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { config } from '@fortawesome/fontawesome-svg-core'
