@@ -9,10 +9,6 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    // Evita que o webpack tente empacotar resend e suas deps opcionais
-    serverComponentsExternalPackages: ["resend"],
-  },
 };
 
 module.exports = nextConfig;

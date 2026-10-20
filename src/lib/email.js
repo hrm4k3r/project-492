@@ -1,10 +1,22 @@
-import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 import { formatBRL } from "./loja";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM = `Curadoria da Mesa <${process.env.RESEND_FROM_EMAIL}>`;
+
+async function enviar({ to, subject, html }) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Resend error ${res.status}: ${err}`);
+  }
+}
 
 const STATUS_CONFIG = {
   pago:       { assunto: "Pagamento confirmado",          titulo: "Pagamento confirmado!", cor: "#4A7C59" },
@@ -213,8 +225,7 @@ export async function enviarEmailConfirmacaoPedido(orderId) {
     const nome = primeiroNome(order.profiles?.full_name);
     const numeroShort = `#${order.id.slice(0, 8)}`;
 
-    await resend.emails.send({
-      from: FROM,
+    await enviar({
       to: email,
       subject: `Pagamento confirmado — Pedido ${numeroShort}`,
       html: templateConfirmacao(order, nome),
@@ -239,8 +250,7 @@ export async function enviarEmailAtualizacaoStatus(orderId, status) {
     const cfg = STATUS_CONFIG[status];
     const numeroShort = `#${order.id.slice(0, 8)}`;
 
-    await resend.emails.send({
-      from: FROM,
+    await enviar({
       to: email,
       subject: `${cfg.assunto} — Pedido ${numeroShort}`,
       html: templateAtualizacaoStatus(order, nome, status),
