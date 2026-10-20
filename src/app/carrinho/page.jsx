@@ -17,6 +17,21 @@ import {
 
 const RETIRADA_SERVICO = "Retirada no local";
 
+function formatDocumento(value) {
+  const d = value.replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+  return d
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
 function useFreteReal(cep, itens) {
   const [opcoes, setOpcoes] = useState([]);
   const [selecionada, setSelecionada] = useState(null);
@@ -78,6 +93,8 @@ export default function Carrinho() {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
 
+  const [documento, setDocumento] = useState("");
+
   const [coupon, setCoupon] = useState("");
   const [couponResult, setCouponResult] = useState(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
@@ -97,6 +114,15 @@ export default function Carrinho() {
       if (data?.length) setSelectedAddress(data.find((a) => a.is_default) ?? data[0]);
     }
     loadAddresses();
+  }, [user]);
+
+  useEffect(() => {
+    async function loadDocumento() {
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("documento").eq("id", user.id).single();
+      if (data?.documento) setDocumento(formatDocumento(data.documento));
+    }
+    loadDocumento();
   }, [user]);
 
   useEffect(() => {
@@ -158,6 +184,12 @@ export default function Carrinho() {
     }
 
     setFinalizando(true);
+
+    // Salva CPF/CNPJ no perfil se informado
+    const documentoLimpo = documento.replace(/\D/g, "");
+    if (documentoLimpo.length === 11 || documentoLimpo.length === 14) {
+      await supabase.from("profiles").update({ documento: documentoLimpo }).eq("id", user.id);
+    }
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
@@ -525,6 +557,22 @@ export default function Carrinho() {
             <span className="font-display text-xl text-primary">Total</span>
             <span className="font-display text-3xl font-semibold text-terracotta">{formatBRL(total)}</span>
           </div>
+
+          {user && (
+            <div className="border-t border-cardBorder pt-4">
+              <label htmlFor="documento" className="block text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55">
+                CPF / CNPJ <span className="normal-case tracking-normal">(para nota fiscal)</span>
+              </label>
+              <input
+                id="documento"
+                value={documento}
+                onChange={(e) => setDocumento(formatDocumento(e.target.value))}
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                className="mt-1.5 w-full rounded-lg border border-cardBorder bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"
+              />
+            </div>
+          )}
 
           {erro && <p className="text-sm text-terracotta">{erro}</p>}
 
