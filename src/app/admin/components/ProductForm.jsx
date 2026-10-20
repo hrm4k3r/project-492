@@ -40,6 +40,8 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
     marca: initialData?.marca ?? "",
     pais: initialData?.pais ?? "",
     estilo: initialData?.estilo ?? "",
+    ncm: initialData?.ncm ?? "",
+    unidade: initialData?.unidade ?? "UN",
     peso_kg: initialData?.peso_kg ?? 0.5,
     altura_cm: initialData?.altura_cm ?? 10,
     largura_cm: initialData?.largura_cm ?? 15,
@@ -103,6 +105,8 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
       marca: form.marca.trim() || null,
       pais: form.pais.trim() || null,
       estilo: form.estilo.trim() || null,
+      ncm: form.ncm.replace(/\D/g, "") || null,
+      unidade: form.unidade.trim().toUpperCase() || "UN",
       peso_kg: Number(form.peso_kg),
       altura_cm: Number(form.altura_cm),
       largura_cm: Number(form.largura_cm),
@@ -164,6 +168,39 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
               <input id="estilo" name="estilo" value={form.estilo} onChange={handleChange} list="sugestoes-estilo" className={inputClass} />
               <datalist id="sugestoes-estilo">
                 {SUGESTOES_ESTILO.map((s) => <option key={s} value={s} />)}
+              </datalist>
+            </Campo>
+          </div>
+        </Secao>
+
+        <Secao titulo="Dados fiscais" descricao="Usados na emissão automática de NF-e. NCM obrigatório para notas fiscais.">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Campo label="NCM" htmlFor="ncm">
+              <input
+                id="ncm"
+                name="ncm"
+                value={form.ncm}
+                onChange={handleChange}
+                placeholder="0000.00.00"
+                inputMode="numeric"
+                maxLength={10}
+                className={inputClass}
+              />
+            </Campo>
+            <Campo label="Unidade de medida" htmlFor="unidade">
+              <input
+                id="unidade"
+                name="unidade"
+                value={form.unidade}
+                onChange={handleChange}
+                list="sugestoes-unidade"
+                placeholder="UN"
+                className={`uppercase ${inputClass}`}
+              />
+              <datalist id="sugestoes-unidade">
+                {["UN", "KG", "CX", "DZ", "PC", "L", "ML", "G"].map((u) => (
+                  <option key={u} value={u} />
+                ))}
               </datalist>
             </Campo>
           </div>
