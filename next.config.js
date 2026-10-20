@@ -9,10 +9,9 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    // @react-email/render é peer dependency opcional do resend — não usamos
-    config.resolve.alias["@react-email/render"] = false;
-    return config;
+  experimental: {
+    // Evita que o webpack tente empacotar resend e suas deps opcionais
+    serverComponentsExternalPackages: ["resend"],
   },
 };
 
