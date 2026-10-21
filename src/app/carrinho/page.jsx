@@ -99,7 +99,6 @@ export default function Carrinho() {
   const [couponResult, setCouponResult] = useState(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
-  const [percentPrimeiraCompra, setPercentPrimeiraCompra] = useState(0);
   const [finalizando, setFinalizando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -125,18 +124,6 @@ export default function Carrinho() {
     loadDocumento();
   }, [user]);
 
-  useEffect(() => {
-    async function carregarPrimeiraCompra() {
-      if (!user) {
-        setPercentPrimeiraCompra(0);
-        return;
-      }
-      const { data } = await supabase.rpc("desconto_primeira_compra");
-      setPercentPrimeiraCompra(Number(data) || 0);
-    }
-    carregarPrimeiraCompra();
-  }, [user]);
-
   const handleApplyCoupon = async () => {
     if (!coupon.trim()) return;
     setCheckingCoupon(true);
@@ -157,9 +144,7 @@ export default function Carrinho() {
       ? (subtotal * Number(couponResult.discount_value)) / 100
       : Number(couponResult.discount_value)
     : 0;
-  const descontoPrimeiraCompra = (subtotal * percentPrimeiraCompra) / 100;
-  const usaPrimeiraCompra = descontoPrimeiraCompra > descontoCupom;
-  const desconto = Math.min(subtotal, Math.max(descontoCupom, descontoPrimeiraCompra));
+  const desconto = Math.min(subtotal, descontoCupom);
 
   const freteGratisPorValor = freteGratisAcima > 0 && subtotal >= freteGratisAcima;
   const freteValor = tipoEntrega === "retirada" ? 0 : freteGratisPorValor ? 0 : (selecionada?.preco ?? 0);
@@ -202,11 +187,7 @@ export default function Carrinho() {
         frete_servico: tipoEntrega === "retirada" ? RETIRADA_SERVICO : selecionada?.servico ?? null,
         desconto,
         total,
-        coupon_code: usaPrimeiraCompra
-          ? "PRIMEIRA-COMPRA"
-          : couponResult?.valid
-          ? coupon.trim().toUpperCase()
-          : null,
+        coupon_code: couponResult?.valid ? coupon.trim().toUpperCase() : null,
       })
       .select()
       .single();
@@ -515,11 +496,7 @@ export default function Carrinho() {
 
           {desconto > 0 && (
             <div className="flex justify-between text-sm font-medium text-olive">
-              <span>
-                {usaPrimeiraCompra
-                  ? `Primeira compra (${percentPrimeiraCompra}%)`
-                  : `Cupom ${coupon.toUpperCase()}`}
-              </span>
+              <span>Cupom {coupon.toUpperCase()}</span>
               <span>-{formatBRL(desconto)}</span>
             </div>
           )}
@@ -543,13 +520,13 @@ export default function Carrinho() {
             <p className={`text-xs ${couponResult.valid ? "text-olive" : "text-terracotta"}`}>{couponResult.message}</p>
           )}
 
-          {!user && primeiraCompraPercent > 0 && (
+          {!user && (
             <p className="rounded-xl bg-sand p-3 text-xs text-primary/75">
               Primeira compra?{" "}
               <Link href="/cadastro?voltar=/carrinho" className="font-semibold text-terracotta underline">
                 Crie sua conta
               </Link>{" "}
-              e ganhe {primeiraCompraPercent}% de desconto.
+              e use o cupom <span className="font-semibold">BEMVINDO</span> para ganhar 10% de desconto.
             </p>
           )}
 
