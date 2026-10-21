@@ -1,11 +1,63 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "../../../../config/supabase";
 import { invalidarConfiguracoes } from "../../../lib/useConfiguracoes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faLink, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import AdminTitulo from "../components/AdminTitulo";
 import { cardClass, inputClass, labelClass } from "../ui";
+
+function ConexaoBling() {
+  const searchParams = useSearchParams();
+  const [status, setStatus] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/bling/status")
+      .then((r) => r.json())
+      .then(setStatus)
+      .catch(() => setStatus({ conectado: false }));
+  }, []);
+
+  const resultado = searchParams.get("bling");
+
+  return (
+    <section className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
+      <div>
+        <p className="font-display text-2xl font-semibold text-primary">Bling — NF-e</p>
+        {status === null ? (
+          <p className="text-sm text-primary/60">Verificando conexão...</p>
+        ) : status.conectado ? (
+          <p className="flex items-center gap-2 text-sm text-olive">
+            <FontAwesomeIcon icon={faCheck} />
+            Conectado{status.conectadoEm ? ` desde ${new Date(status.conectadoEm).toLocaleDateString("pt-BR")}` : ""}.
+            NF-e emitida automaticamente ao confirmar o pagamento.
+          </p>
+        ) : (
+          <p className="text-sm text-primary/60">
+            Ainda não conectado. Conecte para emissão automática de NF-e após o pagamento.
+          </p>
+        )}
+        {resultado === "erro" && (
+          <p className="mt-1 flex items-center gap-2 text-sm text-terracotta">
+            <FontAwesomeIcon icon={faTriangleExclamation} />
+            Não foi possível conectar ({searchParams.get("motivo")}).
+          </p>
+        )}
+        {resultado === "conectado" && (
+          <p className="mt-1 flex items-center gap-2 text-sm text-olive">
+            <FontAwesomeIcon icon={faCheck} />
+            Bling conectado com sucesso!
+          </p>
+        )}
+      </div>
+      <a href="/api/bling/conectar" className="btn-outline !py-2.5 text-xs">
+        <FontAwesomeIcon icon={faLink} />
+        {status?.conectado ? "Reconectar" : "Conectar Bling"}
+      </a>
+    </section>
+  );
+}
 
 export default function AdminConfiguracoes() {
   const [freteGratis, setFreteGratis] = useState("");
@@ -56,10 +108,14 @@ export default function AdminConfiguracoes() {
     <div>
       <AdminTitulo titulo="Configurações" descricao="Regras comerciais da loja. As mudanças valem na hora." />
 
+      <div className="mt-8 max-w-2xl">
+        <ConexaoBling />
+      </div>
+
       {loading ? (
         <p className="mt-8 text-primary/60">Carregando...</p>
       ) : (
-        <form onSubmit={salvar} className="mt-8 flex max-w-2xl flex-col gap-6">
+        <form onSubmit={salvar} className="mt-6 flex max-w-2xl flex-col gap-6">
           <section className={cardClass}>
             <h2 className="font-display text-2xl font-semibold text-primary">Frete grátis</h2>
             <p className="mt-1 text-sm text-primary/55">

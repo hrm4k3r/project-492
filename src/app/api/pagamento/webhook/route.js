@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "@/lib/mercadopago";
 import { enviarEmailConfirmacaoPedido } from "@/lib/email";
+import { emitirNFe } from "@/lib/bling";
 
 function supabaseAdmin() {
   return createClient(
@@ -61,6 +62,9 @@ export async function POST(request) {
       .eq("id", orderId);
 
     enviarEmailConfirmacaoPedido(orderId).catch(console.error);
+    emitirNFe(orderId).catch((err) =>
+      console.error(`NF-e pedido ${orderId}:`, err.message)
+    );
 
     return Response.json({ ok: true });
   } catch (err) {
