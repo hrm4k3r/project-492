@@ -10,6 +10,13 @@ function supabaseAdmin() {
 
 export async function POST(request) {
   try {
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) return Response.json({ error: "Não autorizado" }, { status: 401 });
+
+    const db = supabaseAdmin();
+    const { data: { user } } = await db.auth.getUser(token);
+    if (!user) return Response.json({ error: "Não autorizado" }, { status: 401 });
+
     const { orderId, selectedPaymentMethod, formData } = await request.json();
 
     if (!orderId || !selectedPaymentMethod || !formData) {
@@ -19,15 +26,14 @@ export async function POST(request) {
       );
     }
 
-    const db = supabaseAdmin();
-
     const { data: order, error: orderError } = await db
       .from("orders")
       .select("id, total, profile_id, status")
       .eq("id", orderId)
       .single();
 
-    if (orderError || !order) {
+    // Só o dono do pedido paga por ele; para os outros o pedido "não existe".
+    if (orderError || !order || order.profile_id !== user.id) {
       return Response.json({ error: "Pedido não encontrado" }, { status: 404 });
     }
 
@@ -78,10 +84,10 @@ export async function POST(request) {
     result.paymentId = payment.id;
     return Response.json(result);
   } catch (err) {
+    // Detalhes só no log do servidor; o navegador recebe uma mensagem genérica.
     console.error("Erro ao criar pagamento MP:", err);
-    // Inclui stack em dev ou mensagem detalhada em prod para facilitar debug
     return Response.json(
-      { error: err.message, detail: err.cause ?? err.stack?.split("\n")[0] ?? null },
+      { error: "Não foi possível processar o pagamento. Tente novamente." },
       { status: 500 }
     );
   }

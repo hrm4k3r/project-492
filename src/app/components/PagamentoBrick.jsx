@@ -2,6 +2,16 @@
 import { useState } from "react";
 import Image from "next/image";
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
+import { supabase } from "../../../config/supabase";
+
+// A rota de pagamento exige o token do cliente dono do pedido.
+async function cabecalhosAutenticados() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session?.access_token ?? ""}`,
+  };
+}
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faCopy, faSpinner, faCreditCard, faQrcode } from "@fortawesome/free-solid-svg-icons";
 
@@ -36,7 +46,7 @@ function PixSection({ orderId, onPago, onProcessando }) {
     try {
       const res = await fetch("/api/pagamento/criar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await cabecalhosAutenticados(),
         body: JSON.stringify({
           orderId,
           selectedPaymentMethod: "bank_transfer",
@@ -119,11 +129,14 @@ export default function PagamentoBrick({ orderId, total, onPago, onProcessando }
 
   const onSubmitCartao = ({ selectedPaymentMethod, formData }) =>
     new Promise((resolve, reject) => {
-      fetch("/api/pagamento/criar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, selectedPaymentMethod, formData }),
-      })
+      cabecalhosAutenticados()
+        .then((headers) =>
+          fetch("/api/pagamento/criar", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ orderId, selectedPaymentMethod, formData }),
+          })
+        )
         .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
         .then(({ ok, data }) => {
           if (!ok) {

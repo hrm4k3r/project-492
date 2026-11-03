@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "@/lib/mercadopago";
 import { confirmarPagamento } from "@/lib/pedidos";
+import { assinaturaValida } from "@/lib/mpAssinatura";
 
 function supabaseAdmin() {
   return createClient(
@@ -9,7 +10,8 @@ function supabaseAdmin() {
   );
 }
 
-// O MP envia o webhook e espera 200. Sempre retornamos 200 para evitar retentativas.
+// O MP espera 200. Notificações ignoradas respondem 200; assinatura inválida, 401; falha inesperada,
+// 500 para o MP tentar de novo (seguro: confirmarPagamento é idempotente).
 export async function POST(request) {
   try {
     const payload = await request.json();
@@ -17,6 +19,11 @@ export async function POST(request) {
     // Ignora notificações que não sejam de pagamento
     if (payload.type !== "payment" || !payload.data?.id) {
       return Response.json({ ok: true });
+    }
+
+    const dataId = new URL(request.url).searchParams.get("data.id") ?? payload.data.id;
+    if (!assinaturaValida(request, dataId)) {
+      return Response.json({ error: "Assinatura inválida" }, { status: 401 });
     }
 
     const paymentId = String(payload.data.id);
@@ -60,6 +67,6 @@ export async function POST(request) {
     return Response.json({ ok: true });
   } catch (err) {
     console.error("Erro no webhook MP:", err);
-    return Response.json({ ok: true });
+    return Response.json({ error: "Erro ao processar" }, { status: 500 });
   }
 }
