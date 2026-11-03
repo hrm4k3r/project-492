@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { enviarEmailConfirmacaoPedido, enviarEmailAtualizacaoStatus } from "@/lib/email";
+import { enviarEmailAtualizacaoStatus } from "@/lib/email";
+import { requisicaoDeAdmin } from "@/lib/adminAuth";
+import { confirmarPagamento } from "@/lib/pedidos";
 
 const STATUS_VALIDOS = ["pendente", "pago", "preparando", "enviado", "entregue", "cancelado"];
 
@@ -10,23 +12,8 @@ function supabaseAdmin() {
   );
 }
 
-async function verificarAdmin(token) {
-  if (!token) return false;
-  const db = supabaseAdmin();
-  const { data: { user } } = await db.auth.getUser(token);
-  if (!user) return false;
-  const { data: profile } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return profile?.role === "admin";
-}
-
 export async function PATCH(request, { params }) {
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  const isAdmin = await verificarAdmin(token);
-  if (!isAdmin) {
+  if (!(await requisicaoDeAdmin(request))) {
     return Response.json({ error: "Não autorizado" }, { status: 401 });
   }
 
@@ -53,21 +40,30 @@ export async function PATCH(request, { params }) {
     return Response.json({ ok: true }); // sem mudança, nada a fazer
   }
 
+  // Confirmar um pedido pendente como pago (ex.: Pix conferido à mão) segue o mesmo
+  // caminho do Mercado Pago: e-mail de confirmação + NF-e, uma única vez.
+  if (status === "pago" && order.status === "pendente") {
+    try {
+      await confirmarPagamento(db, id);
+    } catch (error) {
+      console.error("Erro ao confirmar pagamento manualmente:", error);
+      return Response.json({ error: "Não foi possível atualizar o pedido." }, { status: 500 });
+    }
+    return Response.json({ ok: true });
+  }
+
   const { error } = await db
     .from("orders")
     .update({ status })
     .eq("id", id);
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("Erro ao atualizar status do pedido:", error);
+    return Response.json({ error: "Não foi possível atualizar o pedido." }, { status: 500 });
   }
 
   // Dispara email sem bloquear a resposta
-  if (status === "pago") {
-    enviarEmailConfirmacaoPedido(id).catch(console.error);
-  } else {
-    enviarEmailAtualizacaoStatus(id, status).catch(console.error);
-  }
+  enviarEmailAtualizacaoStatus(id, status).catch(console.error);
 
   return Response.json({ ok: true });
 }

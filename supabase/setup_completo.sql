@@ -59,8 +59,8 @@ create policy "Usuário atualiza o próprio perfil"
 revoke update on profiles from anon, authenticated;
 grant update (full_name, phone) on profiles to authenticated;
 
-create policy "Usuário cria o próprio perfil"
-  on profiles for insert with check (auth.uid() = id);
+-- Sem policy de INSERT: o perfil nasce pelo gatilho handle_new_user (abaixo).
+revoke insert on profiles from anon, authenticated;
 
 create or replace function is_admin()
 returns boolean
@@ -275,25 +275,7 @@ create policy "Cliente vê itens dos próprios pedidos"
 create policy "Admin gerencia todos os itens de pedido"
   on order_items for all using (is_admin()) with check (is_admin());
 
--- Grava os dados do Pix no próprio pedido sem dar ao cliente UPDATE geral
--- (isso deixaria ele marcar o pedido como "pago" ou mudar o valor).
-create or replace function salvar_dados_pagamento(pedido_id uuid, metodo text, detalhes jsonb)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  update orders
-    set payment_method = metodo,
-        payment_details = detalhes
-    where id = pedido_id
-      and profile_id = auth.uid()
-      and status = 'pendente';
-end;
-$$;
-
-grant execute on function salvar_dados_pagamento(uuid, text, jsonb) to authenticated;
+-- Dados do pagamento (payment_id etc.) são gravados só pelo servidor (service_role).
 
 -- ============================================================
 -- INTEGRAÇÕES (tokens do Melhor Envio)
@@ -332,8 +314,8 @@ on conflict (chave) do nothing;
 -- ============================================================
 -- STORAGE: bucket de fotos dos produtos
 -- ============================================================
-insert into storage.buckets (id, name, public)
-values ('produtos', 'produtos', true)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('produtos', 'produtos', true, 5242880, array['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
 on conflict (id) do nothing;
 
 create policy "Fotos de produtos são públicas para leitura"
