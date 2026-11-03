@@ -7,7 +7,7 @@ import { faPlus, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import AdminTitulo from "../components/AdminTitulo";
 import { cardClass, inputClass, labelClass } from "../ui";
 
-const vazio = { code: "", discount_type: "percent", discount_value: "", min_order_value: "" };
+const vazio = { code: "", discount_type: "percent", discount_value: "", min_order_value: "", only_first_order: false };
 
 export default function AdminCupons() {
   const [cupons, setCupons] = useState([]);
@@ -52,6 +52,7 @@ export default function AdminCupons() {
       discount_type: novo.discount_type,
       discount_value: Number(novo.discount_value),
       min_order_value: Number(novo.min_order_value) || 0,
+      only_first_order: novo.only_first_order,
     });
     setCriando(false);
     if (error) {
@@ -75,7 +76,8 @@ export default function AdminCupons() {
 
       <p className="mt-6 max-w-2xl rounded-xl bg-sand p-4 text-sm leading-relaxed text-primary/75">
         Não há desconto automático de primeira compra: todo desconto vale apenas com cupom digitado no carrinho.
-        O cupom <strong>BEMVINDO</strong> (divulgado no banner e no carrinho) é criado e editado aqui.
+        O cupom <strong>BEMVINDO</strong> (divulgado no banner e no carrinho) é criado e editado aqui e vale só
+        na primeira compra: conta como compra anterior qualquer pedido já pago, preparado, enviado ou entregue.
       </p>
 
       <form onSubmit={criar} className={`${cardClass} mt-6 grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-[1.2fr_1fr_0.8fr_1fr_auto]`}>
@@ -114,6 +116,14 @@ export default function AdminCupons() {
           <FontAwesomeIcon icon={faPlus} />
           Criar cupom
         </button>
+        <label className="flex items-center gap-2 text-sm text-primary/75 sm:col-span-2 xl:col-span-5">
+          <input
+            type="checkbox" checked={novo.only_first_order}
+            onChange={(e) => setNovo({ ...novo, only_first_order: e.target.checked })}
+            className="accent-[#5A2A14]"
+          />
+          Válido só na primeira compra do cliente
+        </label>
       </form>
 
       {loading ? (
@@ -131,6 +141,7 @@ export default function AdminCupons() {
                     ? `${cupom.discount_value}% de desconto`
                     : `${formatBRL(cupom.discount_value)} de desconto`}
                   {Number(cupom.min_order_value) > 0 && ` · pedido mínimo de ${formatBRL(cupom.min_order_value)}`}
+                  {cupom.only_first_order && " · só na primeira compra"}
                 </p>
               </div>
               <div className="flex items-center gap-4">

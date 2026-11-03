@@ -163,6 +163,7 @@ create table if not exists coupons (
   min_order_value numeric(10, 2) default 0,
   active boolean not null default true,
   expires_at timestamptz,
+  only_first_order boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -171,7 +172,7 @@ alter table coupons enable row level security;
 create policy "Admin gerencia cupons"
   on coupons for all using (is_admin()) with check (is_admin());
 
-create or replace function validate_coupon(coupon_code text, order_subtotal numeric)
+create or replace function validate_coupon(coupon_code text, order_subtotal numeric, customer_id uuid default null)
 returns table (valid boolean, discount_type text, discount_value numeric, message text)
 language plpgsql
 security definer
@@ -179,6 +180,7 @@ set search_path = public
 as $$
 declare
   c coupons;
+  uid uuid := coalesce(auth.uid(), case when auth.role() = 'service_role' then customer_id end);
 begin
   select * into c from coupons
     where upper(code) = upper(coupon_code) and active = true
@@ -200,9 +202,27 @@ begin
     return;
   end if;
 
+  if c.only_first_order then
+    if uid is null then
+      return query select false, null::text, null::numeric, 'Entre na sua conta para usar este cupom.';
+      return;
+    end if;
+
+    if exists (
+      select 1 from orders
+      where profile_id = uid and status in ('pago', 'preparando', 'enviado', 'entregue')
+    ) then
+      return query select false, null::text, null::numeric, 'Este cupom vale apenas na primeira compra.';
+      return;
+    end if;
+  end if;
+
   return query select true, c.discount_type, c.discount_value, 'Cupom aplicado!';
 end;
 $$;
+
+revoke execute on function validate_coupon(text, numeric, uuid) from public;
+grant execute on function validate_coupon(text, numeric, uuid) to anon, authenticated, service_role;
 
 -- ============================================================
 -- PEDIDOS

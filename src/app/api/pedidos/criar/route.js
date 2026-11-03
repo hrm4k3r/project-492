@@ -82,6 +82,7 @@ export async function POST(request) {
       const { data } = await db.rpc("validate_coupon", {
         coupon_code: String(cupom).trim(),
         order_subtotal: subtotal,
+        customer_id: user.id, // a service_role não tem auth.uid(); usado nos cupons "só primeira compra"
       });
       const c = data?.[0];
       if (!c?.valid) {
