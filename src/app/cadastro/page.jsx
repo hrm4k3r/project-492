@@ -64,7 +64,8 @@ export default function Cadastro() {
           <h1 className="font-display text-4xl font-medium text-primary">Quase lá!</h1>
           <p className="text-primary/65">
             Enviamos um link de confirmação para <strong>{form.email}</strong>.
-            Clique no link do e-mail para ativar sua conta e depois volte para entrar.
+            Clique no botão do e-mail para ativar sua conta e depois volte para entrar.
+            Se não encontrar, confira a caixa de spam.
           </p>
           <Link href={`/entrar${sufixoVoltar()}`} className="btn-primary mt-2">Já confirmei, entrar</Link>
         </div>

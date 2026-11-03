@@ -67,6 +67,9 @@ export default function Entrar() {
             id="password" required type="password" name="password" autoComplete="current-password"
             value={form.password} onChange={handleChange} className={inputClass}
           />
+          <Link href="/esqueci-senha" className="mt-2 inline-block text-xs text-primary/60 underline hover:text-terracotta">
+            Esqueci minha senha
+          </Link>
         </div>
 
         {error && <p className="rounded-lg bg-sand p-3 text-sm text-terracotta">{error}</p>}

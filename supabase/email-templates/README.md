@@ -30,8 +30,11 @@ no topo de cada arquivo):
 - `confirmar-cadastro.html` → template **Confirm signup**
 - `redefinir-senha.html` → template **Reset Password**
 
-Os templates usam `{{ .ConfirmationURL }}`, que o Supabase substitui
-automaticamente pelo link real.
+Os templates NÃO usam o `{{ .ConfirmationURL }}` padrão. O link leva à página
+`/auth/confirmar` da loja (`{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=...`),
+que só confirma quando o cliente clica no botão. O link padrão é "gasto" por verificadores
+automáticos de e-mail (Outlook/Hotmail, antivírus) antes de o cliente abrir, e o cliente
+vê "otp_expired". Publique o código da loja ANTES de colar estes modelos no Supabase.
 
 ## 4. Conferir
 
