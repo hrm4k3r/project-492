@@ -74,9 +74,9 @@ supabase/           # SQL schema files (run setup_completo.sql for a fresh datab
 
 ### Database tables (Supabase/PostgreSQL)
 
-`produtos`, `profiles`, `addresses`, `orders`, `order_items`, `coupons`, `freight_rules`, `integracoes`
+`produtos`, `categorias`, `profiles`, `addresses`, `orders`, `order_items`, `coupons`, `freight_rules`, `configuracoes`, `integracoes`
 
-Run `supabase/setup_completo.sql` to initialize a fresh project (em bancos existentes, rode também `supabase/schema_pedidos_seguro.sql`). Individual schema files in `supabase/` contain incremental changes.
+Run `supabase/setup_completo.sql` to initialize a fresh project: ele já inclui tudo (colunas fiscais, pagamento, categorias, RLS e correções de segurança). Em bancos existentes rode apenas os `schema_*.sql` incrementais que ainda faltarem. Ao criar uma mudança de banco nova, atualize o `setup_completo.sql` junto. Individual schema files in `supabase/` contain incremental changes.
 
 ### Styling
 

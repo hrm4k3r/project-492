@@ -1,7 +1,8 @@
 -- Loja virtual — setup completo do banco (Supabase)
 -- Rode este arquivo inteiro UMA vez, num projeto Supabase novo:
 -- Dashboard > SQL Editor > New query > colar tudo > Run.
--- Consolida os antigos schema*.sql na ordem certa, sem Pagar.me e sem dados de exemplo.
+-- Consolida todos os schema*.sql (colunas fiscais, Mercado Pago, categorias, segurança) na ordem certa,
+-- sem dados de exemplo. Mantenha este arquivo em dia a cada mudança de banco.
 
 create extension if not exists pgcrypto;
 
@@ -25,6 +26,10 @@ create table if not exists produtos (
   altura_cm numeric(6, 2) not null default 10,
   largura_cm numeric(6, 2) not null default 15,
   comprimento_cm numeric(6, 2) not null default 15,
+  -- Dados fiscais da NF-e (Bling)
+  ncm text,                             -- 8 dígitos, ex.: 22030000 para cervejas
+  unidade text not null default 'UN',   -- UN, KG, CX, DZ...
+  cfop text,                            -- opcional; vazio usa 5102 (mesmo estado) ou 6102
   created_at timestamptz not null default now()
 );
 
@@ -251,6 +256,10 @@ create table if not exists orders (
   desconto numeric(10, 2) not null default 0,
   total numeric(10, 2) not null,
   coupon_code text,
+  payment_provider text default 'mercadopago',
+  payment_id text,                      -- id do pagamento no Mercado Pago, gravado pelo servidor
+  payment_status text not null default 'pendente'
+    check (payment_status in ('pendente', 'pago', 'falhou', 'reembolsado')),
   payment_method text check (payment_method in ('pix')),
   payment_details jsonb,
   created_at timestamptz not null default now()
@@ -290,7 +299,37 @@ create policy "Admin gerencia todos os itens de pedido"
 -- Dados do pagamento (payment_id etc.) são gravados só pelo servidor (service_role).
 
 -- ============================================================
--- INTEGRAÇÕES (tokens do Melhor Envio)
+-- CATEGORIAS DO CATÁLOGO (gerenciadas em Admin > Categorias)
+-- ============================================================
+create table if not exists categorias (
+  id serial primary key,
+  slug text unique not null,
+  nome text not null,
+  descricao text not null default '',
+  ordem int not null default 0,
+  ativa boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table categorias enable row level security;
+
+create policy "Leitura pública de categorias ativas"
+  on categorias for select using (ativa = true);
+
+create policy "Admin gerencia categorias"
+  on categorias for all using (is_admin()) with check (is_admin());
+
+insert into categorias (slug, nome, descricao, ordem) values
+  ('cervejas-nacionais', 'Cervejas Artesanais Nacionais', 'Rótulos brasileiros com personalidade, de cervejarias que fazem a diferença.', 1),
+  ('cervejas-importadas', 'Cervejas Importadas',          'Clássicos e descobertas de diferentes países e tradições cervejeiras.',       2),
+  ('vinhos',             'Vinhos',                        'Vinhos selecionados por origem, uva e perfil.',                               3),
+  ('queijos',            'Queijos',                       'Queijos para acompanhar cada rótulo da mesa.',                                4),
+  ('cafes',              'Cafés',                         'Cafés especiais, escolhidos pela origem e pelo sabor.',                       5),
+  ('doces',              'Doces',                         'Doces artesanais e especiais para adoçar a sua mesa.',                        6)
+on conflict (slug) do nothing;
+
+-- ============================================================
+-- INTEGRAÇÕES (tokens do Melhor Envio e do Bling)
 -- Sem policies de propósito: só a service_role (servidor) acessa.
 -- ============================================================
 create table if not exists integracoes (
