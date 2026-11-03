@@ -12,14 +12,14 @@ function supabaseAdmin() {
 // Usado pelo polling da página de pagamento — não depende do webhook chegar.
 export async function POST(request) {
   try {
-    const { orderId, paymentId: clientPaymentId } = await request.json();
+    const { orderId } = await request.json();
     if (!orderId) return Response.json({ status: "erro" }, { status: 400 });
 
     const db = supabaseAdmin();
 
     const { data: order } = await db
       .from("orders")
-      .select("status")
+      .select("status, total, payment_id")
       .eq("id", orderId)
       .single();
 
@@ -28,14 +28,22 @@ export async function POST(request) {
     // Já confirmado no banco
     if (order.status === "pago") return Response.json({ status: "pago" });
 
-    // Precisa do paymentId para consultar o MP
-    const mpPaymentId = clientPaymentId;
+    // Só consulta o pagamento que o servidor registrou neste pedido: um id vindo
+    // do cliente permitiria "quitar" um pedido com o pagamento de outro.
+    const mpPaymentId = order.payment_id;
     if (!mpPaymentId) return Response.json({ status: order.status });
 
     // Consulta o MP diretamente
     const payment = await buscarPagamento(String(mpPaymentId));
 
     if (payment.status === "approved") {
+      const esperado = Math.round(Number(order.total) * 100);
+      const pago = Math.round(Number(payment.transaction_amount) * 100);
+      if (payment.external_reference !== orderId || Math.abs(esperado - pago) > 1) {
+        console.error(`verificar: pagamento ${mpPaymentId} não confere com o pedido ${orderId}`);
+        return Response.json({ status: "pendente", mpStatus: payment.status });
+      }
+
       await db
         .from("orders")
         .update({ status: "pago", payment_status: "pago" })

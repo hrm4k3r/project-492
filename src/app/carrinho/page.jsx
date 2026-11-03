@@ -15,8 +15,6 @@ import {
   faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock, faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 
-const RETIRADA_SERVICO = "Retirada no local";
-
 function formatDocumento(value) {
   const d = value.replace(/\D/g, "").slice(0, 14);
   if (d.length <= 11) {
@@ -176,44 +174,30 @@ export default function Carrinho() {
       await supabase.from("profiles").update({ documento: documentoLimpo }).eq("id", user.id);
     }
 
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        profile_id: user.id,
-        address_id: tipoEntrega === "retirada" ? null : selectedAddress.id,
-        status: "pendente",
-        subtotal,
-        frete: freteValor,
-        frete_servico: tipoEntrega === "retirada" ? RETIRADA_SERVICO : selecionada?.servico ?? null,
-        desconto,
-        total,
-        coupon_code: couponResult?.valid ? coupon.trim().toUpperCase() : null,
-      })
-      .select()
-      .single();
+    // O servidor recalcula preços, cupom e frete; o total exibido aqui é só informativo.
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch("/api/pedidos/criar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token ?? ""}`,
+      },
+      body: JSON.stringify({
+        itens: items.map((i) => ({ id: i.id, quantidade: i.quantidade })),
+        tipoEntrega,
+        addressId: tipoEntrega === "retirada" ? null : selectedAddress.id,
+        freteServico: selecionada?.servico ?? null,
+        cupom: couponResult?.valid ? coupon.trim() : null,
+      }),
+    });
+    const body = await res.json().catch(() => ({}));
 
-    if (orderError) {
-      setErro("Não foi possível registrar o pedido: " + orderError.message);
+    if (!res.ok || !body.orderId) {
+      setErro(body.error ?? "Não foi possível registrar o pedido.");
       setFinalizando(false);
       return;
     }
-
-    const orderItems = items.map((item) => ({
-      order_id: order.id,
-      produto_id: item.id,
-      titulo: item.titulo,
-      preco_unitario: item.preco,
-      quantidade: item.quantidade,
-      subtotal: item.preco * item.quantidade,
-    }));
-
-    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-
-    if (itemsError) {
-      setErro("Pedido criado, mas houve um erro ao salvar os itens: " + itemsError.message);
-      setFinalizando(false);
-      return;
-    }
+    const order = { id: body.orderId };
 
     clearCart();
     router.push(`/pagamento/${order.id}`);

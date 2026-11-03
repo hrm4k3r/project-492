@@ -41,7 +41,7 @@ export default function PaginaPagamento() {
         const res = await fetch("/api/pagamento/verificar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId, paymentId }),
+          body: JSON.stringify({ orderId }),
         });
         const data = await res.json();
         if (data.status === "pago") {

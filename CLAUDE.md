@@ -19,8 +19,9 @@ Copy `.env.local.example` to `.env.local` and fill in:
 
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — public Supabase credentials
 - `SUPABASE_SERVICE_ROLE_KEY` — server-only, used in API routes and admin operations
-- `INFINITEPAY_HANDLE` — InfiniteTag sem o `$` (ex: `curadoria`)
-- `NEXT_PUBLIC_SITE_URL` — URL pública da loja, usada para montar `redirect_url` e `webhook_url`
+- `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` / `MERCADOPAGO_ACCESS_TOKEN` — Mercado Pago (Checkout Bricks); o token é server-only
+- `RESEND_API_KEY` / `RESEND_FROM_EMAIL` — e-mails transacionais (chamados via `fetch`, sem o pacote `resend`)
+- `BLING_CLIENT_ID` / `BLING_CLIENT_SECRET` / `BLING_REDIRECT_URI` / `BLING_ESTADO_ORIGEM` — Bling (emissão de NF-e)
 - `MELHORENVIO_*` — shipping integration OAuth credentials
 - `MELHORENVIO_CEP_ORIGEM` — store origin ZIP code for shipping calculation
 
@@ -35,12 +36,15 @@ src/app/
   components/       # Reusable UI components (Catalogo, NavBar, etc.)
   context/          # React Context: AuthContext (Supabase auth), CartContext (localStorage cart)
   admin/            # Protected admin panel (products, orders, coupons, shipping, settings)
-  api/              # API routes: frete/calcular, melhorenvio (OAuth), pagamento/criar, pagamento/webhook
-  pagamento/retorno # Post-payment confirmation page (polls order status after InfinitePay redirect)
+  api/              # API routes: frete/calcular, melhorenvio e bling (OAuth), pedidos/criar, pedidos/[id]/status, pagamento/criar|verificar|webhook
+  pagamento/        # Páginas de pagamento ([orderId] com Bricks e polling de status; retorno)
   styles/           # Global CSS
 src/lib/
   loja.js           # Store constants: LOJA, CATEGORIAS, formatBRL
-  infinitepay.js    # InfinitePay API client (server-only — never import from client components)
+  mercadopago.js   # Mercado Pago API client (server-only — never import from client components)
+  bling.js         # Bling API client / NF-e (server-only)
+  email.js         # Resend e-mails via fetch (server-only)
+  frete.js         # Cotação de frete compartilhada (server-only)
   melhorenvio.js    # Shipping API client (server-only — never import from client components)
   planilha.js       # CSV import/export for products
   useConfiguracoes.js # Hook for store configuration from Supabase
@@ -54,14 +58,15 @@ supabase/           # SQL schema files (run setup_completo.sql for a fresh datab
 - **Auth & roles:** Supabase Auth extended with a `profiles` table (role: `customer` | `admin`). Admin routes check role via `AuthContext`.
 - **Security:** Supabase Row-Level Security (RLS) is the enforcement layer. `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS — only use it in server-side API routes.
 - **Shipping:** Two modes — Melhor Envio API (dynamic rates via OAuth token stored in `integracoes` table) and static `freight_rules` table as fallback.
-- **Payments:** InfinitePay hosted checkout — `POST /api/pagamento/criar` cria o link, o cliente é redirecionado para a InfinitePay (escolhe Pix ou cartão), e o webhook em `POST /api/pagamento/webhook` confirma o pagamento. O webhook é não-assinado: toda confirmação é validada via `payment_check` antes de atualizar o banco. Auth: `INFINITEPAY_HANDLE`.
+- **Orders:** o cliente NÃO tem INSERT em `orders`/`order_items` (RLS). `POST /api/pedidos/criar` (Bearer token) recalcula preços, cupom (`validate_coupon`) e frete no servidor e grava o pedido com a service role. Nunca confie em valores vindos do navegador.
+- **Payments:** Mercado Pago Checkout Bricks — `POST /api/pagamento/criar` cobra `orders.total` do banco e grava `payment_id`; o webhook (`pagamento/webhook`) e o polling (`pagamento/verificar`) só marcam `pago` após consultar o pagamento na API do MP e conferir `external_reference` e valor. `verificar` usa o `payment_id` salvo no pedido, nunca um id enviado pelo cliente. Ao pagar: e-mail de confirmação (Resend) e NF-e (Bling).
 - **Path alias:** `@/*` resolves to `./src/*`.
 
 ### Database tables (Supabase/PostgreSQL)
 
 `produtos`, `profiles`, `addresses`, `orders`, `order_items`, `coupons`, `freight_rules`, `integracoes`
 
-Run `supabase/setup_completo.sql` to initialize a fresh project. Individual schema files in `supabase/` contain incremental changes.
+Run `supabase/setup_completo.sql` to initialize a fresh project (em bancos existentes, rode também `supabase/schema_pedidos_seguro.sql`). Individual schema files in `supabase/` contain incremental changes.
 
 ### Styling
 

@@ -224,8 +224,8 @@ alter table orders enable row level security;
 create policy "Cliente vê os próprios pedidos"
   on orders for select using (auth.uid() = profile_id);
 
-create policy "Cliente cria os próprios pedidos"
-  on orders for insert with check (auth.uid() = profile_id);
+-- Sem policy de INSERT para o cliente: pedidos são criados só pelo servidor
+-- (POST /api/pedidos/criar, service_role), que recalcula preços, cupom e frete.
 
 create policy "Admin gerencia todos os pedidos"
   on orders for all using (is_admin()) with check (is_admin());
@@ -244,11 +244,6 @@ alter table order_items enable row level security;
 
 create policy "Cliente vê itens dos próprios pedidos"
   on order_items for select using (
-    exists (select 1 from orders where orders.id = order_items.order_id and orders.profile_id = auth.uid())
-  );
-
-create policy "Cliente cria itens nos próprios pedidos"
-  on order_items for insert with check (
     exists (select 1 from orders where orders.id = order_items.order_id and orders.profile_id = auth.uid())
   );
 
