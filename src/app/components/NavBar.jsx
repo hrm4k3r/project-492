@@ -23,13 +23,12 @@ const CustomLink = ({ title, link }) => (
 export default function NavBar() {
   const { user, profile } = useAuth();
   const { totalItens } = useCart();
-  const { freteGratisAcima, primeiraCompraPercent } = useConfiguracoes();
+  const { freteGratisAcima } = useConfiguracoes();
   const categorias = useCategorias();
 
   const avisos = [
     "Entregamos para todo o Brasil",
     freteGratisAcima > 0 && `Frete grátis acima de ${formatBRL(freteGratisAcima)}`,
-    primeiraCompraPercent > 0 && `${primeiraCompraPercent}% off na primeira compra`,
   ].filter(Boolean);
 
   return (

@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "../../../../config/supabase";
 import { formatBRL } from "../../../lib/loja";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -75,9 +74,8 @@ export default function AdminCupons() {
       />
 
       <p className="mt-6 max-w-2xl rounded-xl bg-sand p-4 text-sm leading-relaxed text-primary/75">
-        O desconto de <strong>primeira compra</strong> é automático e não precisa de cupom. Para ligar,
-        desligar ou mudar o percentual, use{" "}
-        <Link href="/admin/configuracoes" className="font-medium text-terracotta underline">Configurações</Link>.
+        Não há desconto automático de primeira compra: todo desconto vale apenas com cupom digitado no carrinho.
+        O cupom <strong>BEMVINDO</strong> (divulgado no banner e no carrinho) é criado e editado aqui.
       </p>
 
       <form onSubmit={criar} className={`${cardClass} mt-6 grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-[1.2fr_1fr_0.8fr_1fr_auto]`}>

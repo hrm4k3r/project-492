@@ -84,7 +84,7 @@ export default function Carrinho() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { items, updateQuantity, removeItem, subtotal, clearCart } = useCart();
-  const { freteGratisAcima, primeiraCompraPercent, motoboyPreco, motoboyCidade } = useConfiguracoes();
+  const { freteGratisAcima, motoboyPreco, motoboyCidade } = useConfiguracoes();
 
   const [cep, setCep] = useState("");
   const [tipoEntrega, setTipoEntrega] = useState("entrega");

@@ -73,7 +73,6 @@ function ConexaoBling() {
 
 export default function AdminConfiguracoes() {
   const [freteGratis, setFreteGratis] = useState("");
-  const [primeiraCompra, setPrimeiraCompra] = useState("");
   const [motoboyPreco, setMotoboyPreco] = useState("");
   const [motoboyCidade, setMotoboyCidade] = useState("");
   const [loading, setLoading] = useState(true);
@@ -85,7 +84,6 @@ export default function AdminConfiguracoes() {
       const { data } = await supabase.from("configuracoes").select("chave, valor");
       const mapa = Object.fromEntries((data ?? []).map((c) => [c.chave, c.valor]));
       setFreteGratis(String(mapa.frete_gratis_acima ?? 1000));
-      setPrimeiraCompra(String(mapa.primeira_compra_percent ?? 10));
       setMotoboyPreco(String(mapa.motoboy_preco ?? MOTOBOY_PADRAO.preco));
       setMotoboyCidade(String(mapa.motoboy_cidade ?? MOTOBOY_PADRAO.cidade));
       setLoading(false);
@@ -98,10 +96,9 @@ export default function AdminConfiguracoes() {
     setMensagem(null);
 
     const frete = Number(freteGratis);
-    const percent = Number(primeiraCompra);
     const motoboy = Number(motoboyPreco);
-    if (!(frete >= 0) || !(percent >= 0 && percent <= 100) || !(motoboy >= 0)) {
-      setMensagem({ ok: false, texto: "Confira os valores: frete e motoboy não podem ser negativos e o desconto vai de 0 a 100." });
+    if (!(frete >= 0) || !(motoboy >= 0)) {
+      setMensagem({ ok: false, texto: "Confira os valores: frete grátis e motoboy não podem ser negativos." });
       return;
     }
     if (motoboy > 0 && !motoboyCidade.trim()) {
@@ -113,7 +110,6 @@ export default function AdminConfiguracoes() {
     const agora = new Date().toISOString();
     const { error } = await supabase.from("configuracoes").upsert([
       { chave: "frete_gratis_acima", valor: frete, updated_at: agora },
-      { chave: "primeira_compra_percent", valor: percent, updated_at: agora },
       { chave: "motoboy_preco", valor: motoboy, updated_at: agora },
       { chave: "motoboy_cidade", valor: motoboyCidade.trim(), updated_at: agora },
     ]);
@@ -148,20 +144,6 @@ export default function AdminConfiguracoes() {
             <input
               id="frete" type="number" min="0" step="0.01" required
               value={freteGratis} onChange={(e) => setFreteGratis(e.target.value)}
-              className={`${inputClass} mt-1.5 max-w-[12rem]`}
-            />
-          </section>
-
-          <section className={cardClass}>
-            <h2 className="font-display text-2xl font-semibold text-primary">Desconto de primeira compra</h2>
-            <p className="mt-1 text-sm text-primary/55">
-              Aplicado automaticamente ao cliente que ainda não fez nenhum pedido, sem precisar de cupom. Se o
-              cliente usar um cupom melhor, vale o maior desconto. Use 0 para desativar.
-            </p>
-            <label htmlFor="primeira" className={`${labelClass} mt-5 block`}>Desconto (%)</label>
-            <input
-              id="primeira" type="number" min="0" max="100" step="1" required
-              value={primeiraCompra} onChange={(e) => setPrimeiraCompra(e.target.value)}
               className={`${inputClass} mt-1.5 max-w-[12rem]`}
             />
           </section>

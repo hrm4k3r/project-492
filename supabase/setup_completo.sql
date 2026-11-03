@@ -305,29 +305,9 @@ create policy "Admin gerencia configurações"
   on configuracoes for all using (is_admin()) with check (is_admin());
 
 insert into configuracoes (chave, valor) values
-  ('frete_gratis_acima', '1000'::jsonb),
-  ('primeira_compra_percent', '10'::jsonb)
+  ('frete_gratis_acima', '1000'::jsonb)
 on conflict (chave) do nothing;
 
--- Desconto de primeira compra do cliente logado (só se ainda não tem pedidos).
-create or replace function desconto_primeira_compra()
-returns numeric
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select case
-    when auth.uid() is not null
-      and not exists (
-        select 1 from orders where profile_id = auth.uid() and status <> 'cancelado'
-      )
-    then coalesce((select (valor #>> '{}')::numeric from configuracoes where chave = 'primeira_compra_percent'), 0)
-    else 0
-  end;
-$$;
-
-grant execute on function desconto_primeira_compra() to authenticated;
 
 -- ============================================================
 -- STORAGE: bucket de fotos dos produtos

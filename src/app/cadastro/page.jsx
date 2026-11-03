@@ -75,7 +75,7 @@ export default function Cadastro() {
   return (
     <AuthShell
       titulo="Criar conta"
-      subtitulo="Cadastre-se para finalizar compras, acompanhar pedidos e ganhar desconto na primeira compra."
+      subtitulo="Cadastre-se para finalizar compras e acompanhar seus pedidos."
       rodape={
         <>
           Já tem conta?{" "}

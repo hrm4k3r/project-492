@@ -12,7 +12,7 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-cardBorder bg-white px-4 py-3 text-primary outline-none transition-colors focus:border-gold";
 
 export default function FaleConoscoConteudo() {
-  const { freteGratisAcima, primeiraCompraPercent } = useConfiguracoes();
+  const { freteGratisAcima } = useConfiguracoes();
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -37,10 +37,6 @@ export default function FaleConoscoConteudo() {
     {
       p: "Posso retirar o pedido na loja?",
       r: `Sim. Escolha "Retirar na loja" no carrinho, sem custo de frete. A loja fica em ${LOJA.endereco}. Combinamos o horário pelo WhatsApp depois da confirmação do pagamento.`,
-    },
-    primeiraCompraPercent > 0 && {
-      p: "Tem desconto na primeira compra?",
-      r: `Sim! Quem faz o primeiro pedido com a conta cadastrada ganha ${primeiraCompraPercent}% de desconto, aplicado automaticamente no carrinho.`,
     },
     {
       p: "Vocês vendem para menores de 18 anos?",

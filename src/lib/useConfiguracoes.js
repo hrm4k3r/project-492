@@ -6,7 +6,6 @@ import { MOTOBOY_PADRAO } from "./motoboy";
 
 const PADRAO = {
   freteGratisAcima: 1000,
-  primeiraCompraPercent: 10,
   motoboyPreco: MOTOBOY_PADRAO.preco,
   motoboyCidade: MOTOBOY_PADRAO.cidade,
 };
@@ -24,7 +23,6 @@ function carregar() {
         const cfg = { ...PADRAO };
         (data ?? []).forEach(({ chave, valor }) => {
           if (chave === "frete_gratis_acima") cfg.freteGratisAcima = Number(valor);
-          if (chave === "primeira_compra_percent") cfg.primeiraCompraPercent = Number(valor);
           if (chave === "motoboy_preco") cfg.motoboyPreco = Number(valor);
           if (chave === "motoboy_cidade") cfg.motoboyCidade = String(valor ?? "");
         });
