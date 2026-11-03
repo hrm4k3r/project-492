@@ -75,6 +75,15 @@ export async function POST(request) {
     });
     const subtotal = arredondar(linhas.reduce((acc, l) => acc + l.subtotal, 0));
 
+    // O documento é gravado antes do cupom: "só primeira compra" confere o CPF/CNPJ no banco.
+    const { error: documentoError } = await db
+      .from("profiles")
+      .update({ documento: somenteDigitos(documento) })
+      .eq("id", user.id);
+    if (documentoError) {
+      return Response.json({ error: "Não foi possível salvar o CPF/CNPJ." }, { status: 500 });
+    }
+
     // Cupom
     let desconto = 0;
     let couponCode = null;
@@ -164,14 +173,6 @@ export async function POST(request) {
     }
 
     const total = arredondar(Math.max(0, subtotal - desconto) + frete);
-
-    const { error: documentoError } = await db
-      .from("profiles")
-      .update({ documento: somenteDigitos(documento) })
-      .eq("id", user.id);
-    if (documentoError) {
-      return Response.json({ error: "Não foi possível salvar o CPF/CNPJ." }, { status: 500 });
-    }
 
     const { data: order, error: orderError } = await db
       .from("orders")

@@ -192,6 +192,20 @@ describe("POST /api/pedidos/criar", () => {
       });
     });
 
+    it("grava o CPF/CNPJ no perfil antes de validar o cupom (a regra de primeira compra confere o documento)", async () => {
+      let documentoNaHora;
+      h.db = novoBanco({
+        rpc: {
+          validate_coupon: () => {
+            documentoNaHora = h.db.tabelas.profiles.find((p) => p.id === "u1").documento;
+            return [{ valid: true, discount_type: "percent", discount_value: 10 }];
+          },
+        },
+      });
+      await chamar(corpo({ cupom: "BEMVINDO" }));
+      expect(documentoNaHora).toBe("52998224725");
+    });
+
     it("recusa cupom inválido (ex.: quem já comprou) com a mensagem do banco", async () => {
       h.db = novoBanco({ rpc: { validate_coupon: () => [{ valid: false, message: "Este cupom vale apenas na primeira compra." }] } });
       const r = await chamar(corpo({ cupom: "BEMVINDO" }));

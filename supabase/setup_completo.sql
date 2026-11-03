@@ -42,6 +42,7 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
   phone text,
+  documento text, -- CPF/CNPJ só com dígitos, gravado pelo servidor (NF-e e cupom de primeira compra)
   role text not null default 'customer' check (role in ('customer', 'admin')),
   created_at timestamptz not null default now()
 );
@@ -181,6 +182,7 @@ as $$
 declare
   c coupons;
   uid uuid := coalesce(auth.uid(), case when auth.role() = 'service_role' then customer_id end);
+  doc text;
 begin
   select * into c from coupons
     where upper(code) = upper(coupon_code) and active = true
@@ -208,9 +210,19 @@ begin
       return;
     end if;
 
+    select nullif(regexp_replace(coalesce(documento, ''), '\D', '', 'g'), '')
+      into doc from profiles where id = uid;
+
+    -- Compra anterior da conta OU de qualquer conta com o mesmo CPF/CNPJ.
     if exists (
-      select 1 from orders
-      where profile_id = uid and status in ('pago', 'preparando', 'enviado', 'entregue')
+      select 1
+        from orders o
+        join profiles p on p.id = o.profile_id
+       where o.status in ('pago', 'preparando', 'enviado', 'entregue')
+         and (
+           o.profile_id = uid
+           or (doc is not null and regexp_replace(coalesce(p.documento, ''), '\D', '', 'g') = doc)
+         )
     ) then
       return query select false, null::text, null::numeric, 'Este cupom vale apenas na primeira compra.';
       return;

@@ -50,6 +50,16 @@ async function buscarDadosPedido(orderId) {
   return { order, email };
 }
 
+// Nome, endereço e títulos vêm de campos digitados por clientes/admin: nunca entram crus no HTML.
+export function escaparHtml(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function primeiroNome(nomeCompleto) {
   return (nomeCompleto ?? "").split(" ")[0] || "cliente";
 }
@@ -81,7 +91,7 @@ function htmlBase({ nome, titulo, corTitulo, conteudo, rodape }) {
           <tr>
             <td style="background:#fff;padding:32px 36px;">
               <h1 style="margin:0 0 8px;font-size:24px;color:${corTitulo};">${titulo}</h1>
-              <p style="margin:0 0 24px;font-size:15px;color:#5A2A14;">Olá, ${nome}!</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#5A2A14;">Olá, ${escaparHtml(nome)}!</p>
               ${conteudo}
             </td>
           </tr>
@@ -106,7 +116,7 @@ function linhasItens(items) {
   return items.map((item) => `
     <tr>
       <td style="padding:8px 0;font-size:14px;color:#5A2A14;border-bottom:1px solid #F7E3C5;">
-        ${item.quantidade}× ${item.titulo}
+        ${item.quantidade}× ${escaparHtml(item.titulo)}
       </td>
       <td style="padding:8px 0;font-size:14px;color:#5A2A14;border-bottom:1px solid #F7E3C5;text-align:right;white-space:nowrap;">
         ${formatBRL(item.subtotal)}
@@ -122,14 +132,14 @@ function tabelaResumo(order) {
     ? `<p style="margin:4px 0;font-size:13px;color:#5A2A14;">📦 Retirada na loja</p>`
     : addr
       ? `<p style="margin:4px 0;font-size:13px;color:#5A2A14;">
-           📍 ${addr.street}, ${addr.number}${addr.complement ? ` - ${addr.complement}` : ""} — ${addr.neighborhood}, ${addr.city}/${addr.state} — CEP ${addr.cep}
-           ${order.frete_servico ? `<br/><span style="color:#C9A36A;">${order.frete_servico}</span>` : ""}
+           📍 ${escaparHtml(addr.street)}, ${escaparHtml(addr.number)}${addr.complement ? ` - ${escaparHtml(addr.complement)}` : ""} — ${escaparHtml(addr.neighborhood)}, ${escaparHtml(addr.city)}/${escaparHtml(addr.state)} — CEP ${escaparHtml(addr.cep)}
+           ${order.frete_servico ? `<br/><span style="color:#C9A36A;">${escaparHtml(order.frete_servico)}</span>` : ""}
          </p>`
       : "";
 
   const desconto = Number(order.desconto) > 0
     ? `<tr>
-         <td style="padding:4px 0;font-size:13px;color:#5A2A14;">Desconto${order.coupon_code ? ` (${order.coupon_code})` : ""}</td>
+         <td style="padding:4px 0;font-size:13px;color:#5A2A14;">Desconto${order.coupon_code ? ` (${escaparHtml(order.coupon_code)})` : ""}</td>
          <td style="padding:4px 0;font-size:13px;color:#4A7C59;text-align:right;">-${formatBRL(order.desconto)}</td>
        </tr>`
     : "";
