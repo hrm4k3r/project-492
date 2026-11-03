@@ -361,7 +361,7 @@ export default function Carrinho() {
             {tipoEntrega === "motoboy" && selectedAddress && !enderecoAtendidoPorMotoboy && (
               <p className="mt-4 rounded-xl bg-sand p-4 text-sm leading-relaxed text-terracotta">
                 O motoboy atende apenas {motoboyCidade}. Escolha ou cadastre um endereço nessa cidade, ou use
-                "Receber em casa".
+                &ldquo;Receber em casa&rdquo;.
               </p>
             )}
 
