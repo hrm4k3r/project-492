@@ -8,10 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Start dev server (port 3000)
 npm run build    # Build for production
 npm start        # Start production server
+npm test         # Testes automatizados (Vitest, tests/)
 npm run lint     # Run ESLint
 ```
 
-There are no automated tests; verify changes manually via the dev server.
+Há testes automatizados em `tests/` (Vitest): lógica pura em `tests/lib`, rotas de pedido e pagamento em `tests/api` com Supabase falso em memória (`tests/helpers/fakeSupabase.js`) e Mercado Pago/e-mail/Bling simulados. Rode `npm test` antes de publicar mudanças em pedido, pagamento ou cupom. Fluxos de tela e integrações reais (Mercado Pago, Bling, Resend) seguem sendo verificados manualmente.
 
 ## Environment Variables
 
