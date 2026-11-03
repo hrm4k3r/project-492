@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { criarBanco, resposta } from "../helpers/fakeSupabase";
 
-const h = vi.hoisted(() => ({ db: null, emails: [], statusEmails: [], nfes: [] }));
+const h = vi.hoisted(() => ({ db: null, emails: [], statusEmails: [], avisosLoja: [], nfes: [] }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 vi.mock("../../src/lib/email", () => ({
   enviarEmailConfirmacaoPedido: async (id) => { h.emails.push(id); },
   enviarEmailAtualizacaoStatus: async (id, status) => { h.statusEmails.push([id, status]); },
+  enviarEmailNovoPedidoParaLoja: async (id) => { h.avisosLoja.push(id); },
 }));
 vi.mock("../../src/lib/bling", () => ({ emitirNFe: async (id) => { h.nfes.push(id); } }));
 
@@ -26,6 +27,7 @@ const chamar = async (id, status, token = "tok-admin") =>
 beforeEach(() => {
   h.emails = [];
   h.statusEmails = [];
+  h.avisosLoja = [];
   h.nfes = [];
   h.db = criarBanco({
     tokens: { "tok-admin": { id: "adm" }, "tok-cli": { id: "u1" } },
@@ -50,7 +52,28 @@ describe("PATCH /api/pedidos/[id]/status", () => {
     expect((await chamar("o-pendente", "pago")).status).toBe(200);
     expect(h.db.tabelas.orders[0]).toMatchObject({ status: "pago", payment_status: "pago" });
     expect(h.emails).toEqual(["o-pendente"]);
+    expect(h.avisosLoja).toEqual(["o-pendente"]);
     expect(h.nfes).toEqual(["o-pendente"]);
+  });
+
+  it("grava o código de rastreio só ao marcar como enviado", async () => {
+    const enviar = (id, status, codigoRastreio) =>
+      PATCH(
+        new Request(`https://loja.test/api/pedidos/${id}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer tok-admin" },
+          body: JSON.stringify({ status, codigoRastreio }),
+        }),
+        { params: { id } }
+      );
+
+    await enviar("o-pendente", "enviado", "  BR123456789BR  ");
+    expect(h.db.tabelas.orders[0]).toMatchObject({ status: "enviado", codigo_rastreio: "BR123456789BR" });
+
+    await enviar("o-enviado", "entregue", "BR999");
+    expect(h.db.tabelas.orders[1].codigo_rastreio).toBeUndefined();
+
+    expect(h.statusEmails).toContainEqual(["o-pendente", "enviado"]);
   });
 
   it("repetir a confirmação não emite a NF-e de novo", async () => {

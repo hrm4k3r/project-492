@@ -1,5 +1,5 @@
 // ATENÇÃO: server-only. Nunca importe em componentes client.
-import { enviarEmailConfirmacaoPedido } from "./email";
+import { enviarEmailConfirmacaoPedido, enviarEmailNovoPedidoParaLoja } from "./email";
 import { emitirNFe } from "./bling";
 
 // Marca o pedido como pago e dispara e-mail + NF-e uma única vez.
@@ -17,6 +17,7 @@ export async function confirmarPagamento(db, orderId) {
   if (!data?.length) return false;
 
   enviarEmailConfirmacaoPedido(orderId).catch(console.error);
+  enviarEmailNovoPedidoParaLoja(orderId).catch(console.error);
   emitirNFe(orderId).catch((err) =>
     console.error(`NF-e pedido ${orderId}:`, err.message)
   );

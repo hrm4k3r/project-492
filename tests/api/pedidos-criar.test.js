@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { criarBanco, requisicao, resposta } from "../helpers/fakeSupabase";
 
-const h = vi.hoisted(() => ({ db: null, cotarFrete: null }));
+const h = vi.hoisted(() => ({ db: null, cotarFrete: null, emailRecebido: null }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 vi.mock("../../src/lib/frete", () => ({ cotarFrete: (...a) => h.cotarFrete(...a) }));
+vi.mock("../../src/lib/email", () => ({ enviarEmailPedidoRecebido: (...a) => h.emailRecebido(...a) }));
 
 import { POST } from "../../src/app/api/pedidos/criar/route";
 
@@ -50,6 +51,7 @@ const chamar = async (body, token = "tok-u1") =>
 
 beforeEach(() => {
   h.db = novoBanco();
+  h.emailRecebido = vi.fn(async () => {});
   h.cotarFrete = vi.fn(async () => ({ opcoes: [{ servico: "PAC", preco: 30 }, { servico: "SEDEX", preco: 55 }] }));
 });
 
@@ -57,6 +59,20 @@ describe("POST /api/pedidos/criar", () => {
   it("exige login", async () => {
     expect((await chamar(corpo(), null)).status).toBe(401);
     expect((await chamar(corpo(), "token-invalido")).status).toBe(401);
+  });
+
+  it("avisa o cliente que recebeu o pedido, e uma falha de e-mail não derruba o pedido", async () => {
+    const r = await chamar(corpo());
+    expect(r.status).toBe(200);
+    expect(h.emailRecebido).toHaveBeenCalledWith(r.json.orderId);
+
+    h.emailRecebido = vi.fn(async () => { throw new Error("resend fora do ar"); });
+    expect((await chamar(corpo())).status).toBe(200);
+  });
+
+  it("não envia e-mail quando o pedido é recusado", async () => {
+    await chamar(corpo({ addressId: null }));
+    expect(h.emailRecebido).not.toHaveBeenCalled();
   });
 
   it("recalcula os preços no servidor, ignorando valores enviados pelo navegador", async () => {

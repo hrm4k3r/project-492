@@ -23,6 +23,7 @@ Copy `.env.local.example` to `.env.local` and fill in:
 - `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` / `MERCADOPAGO_ACCESS_TOKEN` — Mercado Pago (Checkout Bricks); o token é server-only
 - `MERCADOPAGO_WEBHOOK_SECRET` — assinatura secreta do webhook do MP (server-only); sem ela a assinatura não é verificada
 - `RESEND_API_KEY` / `RESEND_FROM_EMAIL` — e-mails transacionais (chamados via `fetch`, sem o pacote `resend`)
+- `EMAIL_AVISO_LOJA` — opcional; e-mails (separados por vírgula) avisados a cada novo pedido pago. `NEXT_PUBLIC_SITE_URL` — opcional; base dos links nos e-mails (padrão `https://www.curadoriadamesa.com.br`)
 - `BLING_CLIENT_ID` / `BLING_CLIENT_SECRET` / `BLING_REDIRECT_URI` / `BLING_ESTADO_ORIGEM` — Bling (emissão de NF-e)
 - `BLING_FORMA_PGTO_PIX` / `BLING_FORMA_PGTO_CREDITO` / `BLING_FORMA_PGTO_DEBITO` — ids das formas de pagamento na conta Bling; a NF-e usa o tipo real do pagamento no Mercado Pago
 - `MELHORENVIO_*` — shipping integration OAuth credentials
@@ -47,7 +48,7 @@ src/lib/
   mercadopago.js   # Mercado Pago API client (server-only — never import from client components)
   mpAssinatura.js  # Valida x-signature do webhook do Mercado Pago (server-only)
   bling.js         # Bling API client / NF-e (server-only)
-  email.js         # Resend e-mails via fetch (server-only)
+  email.js         # Resend e-mails via fetch (server-only): pedido recebido, pagamento confirmado, status por modalidade (retirada/motoboy/entrega, com código de rastreio) e aviso à loja
   frete.js         # Cotação de frete compartilhada (server-only)
   documento.js     # Validação de CPF/CNPJ (client e server)
   motoboy.js       # Entrega por motoboy (padrão R$ 15 em São Lourenço; editável em Admin > Configurações)

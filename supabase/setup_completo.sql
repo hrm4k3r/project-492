@@ -260,6 +260,7 @@ create table if not exists orders (
   payment_id text,                      -- id do pagamento no Mercado Pago, gravado pelo servidor
   payment_status text not null default 'pendente'
     check (payment_status in ('pendente', 'pago', 'falhou', 'reembolsado')),
+  codigo_rastreio text,                 -- informado no painel ao marcar como enviado
   payment_method text check (payment_method in ('pix')),
   payment_details jsonb,
   created_at timestamptz not null default now()

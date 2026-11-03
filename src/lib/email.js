@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import { formatBRL } from "./loja";
+import { formatBRL, LOJA } from "./loja";
+import { MOTOBOY_SERVICO } from "./motoboy";
 
 const FROM = `Curadoria da Mesa <${process.env.RESEND_FROM_EMAIL}>`;
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.curadoriadamesa.com.br";
 
 async function enviar({ to, subject, html }) {
   const res = await fetch("https://api.resend.com/emails", {
@@ -10,7 +12,7 @@ async function enviar({ to, subject, html }) {
       "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+    body: JSON.stringify({ from: FROM, to: Array.isArray(to) ? to : [to], subject, html }),
   });
   if (!res.ok) {
     const err = await res.text();
@@ -25,6 +27,58 @@ const STATUS_CONFIG = {
   entregue:   { assunto: "Seu pedido foi entregue",        titulo: "Pedido entregue!", cor: "#4A7C59" },
   cancelado:  { assunto: "Seu pedido foi cancelado",       titulo: "Pedido cancelado", cor: "#B85C38" },
 };
+
+// "retirada" | "motoboy" | "entrega" (Correios/transportadora), a partir do serviço gravado no pedido.
+export function modalidadeDoPedido(order) {
+  if (order?.frete_servico === "Retirada no local") return "retirada";
+  if (order?.frete_servico === MOTOBOY_SERVICO) return "motoboy";
+  return "entrega";
+}
+
+// Título, assunto e texto de cada status mudam conforme a modalidade:
+// "saiu para entrega" não faz sentido para quem vai retirar na loja.
+export function textosDoStatus(status, modalidade) {
+  const base = STATUS_CONFIG[status];
+  if (!base) return null;
+
+  const porModalidade = {
+    enviado: {
+      retirada: {
+        assunto: "Seu pedido está pronto para retirada",
+        titulo: "Seu pedido está pronto para retirada!",
+        mensagem: `Já separamos tudo. Você pode retirar na loja: ${LOJA.endereco}. Leve um documento com foto e o número do pedido.`,
+      },
+      motoboy: {
+        assunto: "Seu pedido saiu com o motoboy",
+        titulo: "Seu pedido saiu com o motoboy!",
+        mensagem: "O motoboy já está a caminho do seu endereço. Fique atento ao telefone e aguarde a entrega.",
+      },
+      entrega: {
+        mensagem: "Seu pedido saiu para entrega. Fique de olho no rastreamento e aguarde!",
+      },
+    },
+    entregue: {
+      retirada: {
+        assunto: "Retirada concluída",
+        titulo: "Retirada concluída!",
+        mensagem: "Obrigado por retirar o seu pedido. Esperamos que você aproveite muito!",
+      },
+    },
+    preparando: {
+      retirada: {
+        mensagem: "Recebemos a confirmação do pagamento e já estamos separando os produtos. Avisaremos quando estiver pronto para retirada.",
+      },
+    },
+  };
+
+  const extra = porModalidade[status]?.[modalidade] ?? {};
+  return {
+    assunto: extra.assunto ?? base.assunto,
+    titulo: extra.titulo ?? base.titulo,
+    cor: base.cor,
+    mensagem: extra.mensagem ?? STATUS_MENSAGEM[status] ?? "",
+  };
+}
 
 function supabaseAdmin() {
   return createClient(
@@ -129,7 +183,7 @@ function tabelaResumo(order) {
   const addr = order.addresses;
 
   const entrega = retirada
-    ? `<p style="margin:4px 0;font-size:13px;color:#5A2A14;">📦 Retirada na loja</p>`
+    ? `<p style="margin:4px 0;font-size:13px;color:#5A2A14;">📦 Retirada na loja<br/>${escaparHtml(LOJA.endereco)}</p>`
     : addr
       ? `<p style="margin:4px 0;font-size:13px;color:#5A2A14;">
            📍 ${escaparHtml(addr.street)}, ${escaparHtml(addr.number)}${addr.complement ? ` - ${escaparHtml(addr.complement)}` : ""} — ${escaparHtml(addr.neighborhood)}, ${escaparHtml(addr.city)}/${escaparHtml(addr.state)} — CEP ${escaparHtml(addr.cep)}
@@ -199,12 +253,20 @@ const STATUS_MENSAGEM = {
 };
 
 function templateAtualizacaoStatus(order, nome, status) {
-  const cfg = STATUS_CONFIG[status];
+  const modalidade = modalidadeDoPedido(order);
+  const cfg = textosDoStatus(status, modalidade);
   const numeroShort = `#${order.id.slice(0, 8)}`;
-  const mensagem = STATUS_MENSAGEM[status] ?? "";
+
+  const rastreio = status === "enviado" && modalidade === "entrega" && order.codigo_rastreio
+    ? `<div style="background:#F8F1E4;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
+         <p style="margin:0;font-size:13px;color:#888;">Código de rastreio</p>
+         <p style="margin:4px 0 0;font-size:18px;font-weight:700;letter-spacing:0.05em;color:#5A2A14;">${escaparHtml(order.codigo_rastreio)}</p>
+       </div>`
+    : "";
 
   const conteudo = `
-    <p style="margin:0 0 20px;font-size:15px;color:#5A2A14;">${mensagem}</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#5A2A14;">${escaparHtml(cfg.mensagem)}</p>
+    ${rastreio}
     <div style="background:#F8F1E4;border-radius:8px;padding:14px 16px;margin-bottom:24px;">
       <p style="margin:0;font-size:13px;color:#888;">Pedido</p>
       <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#5A2A14;">${numeroShort}</p>
@@ -257,7 +319,7 @@ export async function enviarEmailAtualizacaoStatus(orderId, status) {
 
     const { order, email } = dados;
     const nome = primeiroNome(order.profiles?.full_name);
-    const cfg = STATUS_CONFIG[status];
+    const cfg = textosDoStatus(status, modalidadeDoPedido(order));
     const numeroShort = `#${order.id.slice(0, 8)}`;
 
     await enviar({
@@ -267,5 +329,104 @@ export async function enviarEmailAtualizacaoStatus(orderId, status) {
     });
   } catch (err) {
     console.error("Erro ao enviar email de status:", err);
+  }
+}
+
+function templatePedidoRecebido(order, nome) {
+  const numeroShort = `#${order.id.slice(0, 8)}`;
+  const link = `${SITE}/pagamento/${order.id}`;
+
+  const conteudo = `
+    <div style="background:#FFF8E8;border-left:4px solid #C9A36A;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:24px;">
+      <p style="margin:0;font-size:14px;color:#5A2A14;">
+        Recebemos o seu pedido <strong>${numeroShort}</strong>. Ele será separado assim que o pagamento for confirmado.
+      </p>
+    </div>
+    ${tabelaResumo(order)}
+    <p style="margin:0 0 24px;text-align:center;">
+      <a href="${link}" style="display:inline-block;background:#B85C38;color:#F8F1E4;text-decoration:none;font-size:15px;font-weight:bold;padding:14px 32px;border-radius:999px;">
+        Ir para o pagamento
+      </a>
+    </p>
+    <p style="margin:0;font-size:13px;color:#888;">
+      Se você já pagou, pode ignorar este e-mail: avisaremos assim que o pagamento for confirmado.
+      Em caso de dúvidas, fale conosco pelo WhatsApp.
+    </p>`;
+
+  return htmlBase({
+    nome,
+    titulo: "Recebemos o seu pedido",
+    corTitulo: "#C9A36A",
+    conteudo,
+    rodape: `Pedido ${numeroShort} · Curadoria da Mesa`,
+  });
+}
+
+// Enviado ao criar o pedido, enquanto o pagamento ainda não foi confirmado.
+export async function enviarEmailPedidoRecebido(orderId) {
+  try {
+    const dados = await buscarDadosPedido(orderId);
+    if (!dados?.email) {
+      console.warn("Email: sem e-mail para pedido", orderId);
+      return;
+    }
+
+    const { order, email } = dados;
+    await enviar({
+      to: email,
+      subject: `Recebemos o seu pedido — #${order.id.slice(0, 8)}`,
+      html: templatePedidoRecebido(order, primeiroNome(order.profiles?.full_name)),
+    });
+  } catch (err) {
+    console.error("Erro ao enviar email de pedido recebido:", err);
+  }
+}
+
+function templateAvisoLoja(order) {
+  const numeroShort = `#${order.id.slice(0, 8)}`;
+  const cliente = order.profiles?.full_name || "Cliente";
+  const modalidade = modalidadeDoPedido(order);
+  const rotulo = { retirada: "Retirada na loja", motoboy: "Motoboy", entrega: "Entrega (Correios/transportadora)" }[modalidade];
+
+  const conteudo = `
+    <p style="margin:0 0 20px;font-size:15px;color:#5A2A14;">
+      <strong>${escaparHtml(cliente)}</strong>${order.profiles?.phone ? ` · ${escaparHtml(order.profiles.phone)}` : ""}<br/>
+      Modalidade: <strong>${rotulo}</strong>
+    </p>
+    ${tabelaResumo(order)}
+    <p style="margin:0;font-size:13px;color:#888;">
+      Veja e atualize o pedido em <a href="${SITE}/admin/pedidos" style="color:#B85C38;">Admin &gt; Pedidos</a>.
+    </p>`;
+
+  return htmlBase({
+    nome: "equipe",
+    titulo: `Novo pedido pago ${numeroShort}`,
+    corTitulo: "#4A7C59",
+    conteudo,
+    rodape: `Pedido ${numeroShort} · Curadoria da Mesa`,
+  });
+}
+
+// Aviso interno de novo pedido pago. Só envia se EMAIL_AVISO_LOJA estiver definido
+// (um ou mais e-mails separados por vírgula).
+export async function enviarEmailNovoPedidoParaLoja(orderId) {
+  const destinos = (process.env.EMAIL_AVISO_LOJA ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (destinos.length === 0) return;
+
+  try {
+    const dados = await buscarDadosPedido(orderId);
+    if (!dados) return;
+
+    const { order } = dados;
+    await enviar({
+      to: destinos,
+      subject: `Novo pedido pago — #${order.id.slice(0, 8)} (${formatBRL(order.total)})`,
+      html: templateAvisoLoja(order),
+    });
+  } catch (err) {
+    console.error("Erro ao enviar aviso de novo pedido para a loja:", err);
   }
 }

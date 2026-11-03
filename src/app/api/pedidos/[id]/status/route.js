@@ -18,11 +18,14 @@ export async function PATCH(request, { params }) {
   }
 
   const { id } = params;
-  const { status } = await request.json();
+  const { status, codigoRastreio } = await request.json();
 
   if (!STATUS_VALIDOS.includes(status)) {
     return Response.json({ error: "Status inválido" }, { status: 400 });
   }
+
+  // Código de rastreio é opcional e só faz sentido ao marcar como enviado.
+  const rastreio = status === "enviado" ? String(codigoRastreio ?? "").trim().slice(0, 60) : "";
 
   const db = supabaseAdmin();
 
@@ -54,7 +57,7 @@ export async function PATCH(request, { params }) {
 
   const { error } = await db
     .from("orders")
-    .update({ status })
+    .update(rastreio ? { status, codigo_rastreio: rastreio } : { status })
     .eq("id", id);
 
   if (error) {

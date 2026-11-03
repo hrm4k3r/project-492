@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cotarFrete } from "../../../../lib/frete";
 import { documentoValido, somenteDigitos } from "../../../../lib/documento";
 import { MOTOBOY_PADRAO, MOTOBOY_SERVICO, mesmaCidade } from "../../../../lib/motoboy";
+import { enviarEmailPedidoRecebido } from "../../../../lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -202,6 +203,9 @@ export async function POST(request) {
       await db.from("orders").delete().eq("id", order.id);
       return Response.json({ error: "Não foi possível salvar os itens do pedido." }, { status: 500 });
     }
+
+    // Aviso "recebemos o seu pedido" sem bloquear a resposta (falha de e-mail não derruba o pedido).
+    enviarEmailPedidoRecebido(order.id).catch(console.error);
 
     return Response.json({ orderId: order.id });
   } catch (err) {

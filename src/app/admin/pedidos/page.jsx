@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../../config/supabase";
 import { formatBRL } from "../../../lib/loja";
+import { MOTOBOY_SERVICO } from "../../../lib/motoboy";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faLocationDot, faMagnifyingGlass, faStore } from "@fortawesome/free-solid-svg-icons";
 import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
@@ -45,7 +46,20 @@ export default function AdminPedidos() {
     carregar();
   }, []);
 
-  const atualizarStatus = async (id, status) => {
+  // Ao enviar uma entrega por transportadora/Correios, pergunta o código de rastreio (vai no e-mail do cliente).
+  const alterarStatus = (pedido, status) => {
+    let codigoRastreio;
+    const porTransportadora =
+      pedido.frete_servico !== "Retirada no local" && pedido.frete_servico !== MOTOBOY_SERVICO;
+    if (status === "enviado" && porTransportadora) {
+      const resposta = window.prompt("Código de rastreio (opcional). Deixe em branco se não houver:");
+      if (resposta === null) return; // cancelou: não altera o status
+      codigoRastreio = resposta.trim();
+    }
+    atualizarStatus(pedido.id, status, codigoRastreio);
+  };
+
+  const atualizarStatus = async (id, status, codigoRastreio) => {
     setSalvandoId(id);
     const { data: { session } } = await supabase.auth.getSession();
     const resp = await fetch(`/api/pedidos/${id}/status`, {
@@ -54,7 +68,7 @@ export default function AdminPedidos() {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${session?.access_token}`,
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, codigoRastreio }),
     });
     setSalvandoId(null);
     if (!resp.ok) {
@@ -62,7 +76,11 @@ export default function AdminPedidos() {
       alert("Não foi possível atualizar o pedido: " + (err.error ?? resp.statusText));
       return;
     }
-    setPedidos((lista) => lista.map((p) => (p.id === id ? { ...p, status } : p)));
+    setPedidos((lista) =>
+      lista.map((p) =>
+        p.id === id ? { ...p, status, ...(codigoRastreio ? { codigo_rastreio: codigoRastreio } : {}) } : p
+      )
+    );
   };
 
   const contagem = useMemo(() => {
@@ -164,7 +182,7 @@ export default function AdminPedidos() {
                     <select
                       value={pedido.status}
                       disabled={salvandoId === pedido.id}
-                      onChange={(e) => atualizarStatus(pedido.id, e.target.value)}
+                      onChange={(e) => alterarStatus(pedido, e.target.value)}
                       aria-label="Alterar status do pedido"
                       className="rounded-lg border border-cardBorder bg-white px-3 py-2 text-sm outline-none focus:border-gold"
                     >
@@ -211,6 +229,7 @@ export default function AdminPedidos() {
                       {pedido.addresses.neighborhood}, {pedido.addresses.city}/{pedido.addresses.state} &mdash; CEP{" "}
                       {pedido.addresses.cep}
                       {pedido.frete_servico ? ` (${pedido.frete_servico})` : ""}
+                      {pedido.codigo_rastreio ? ` · Rastreio: ${pedido.codigo_rastreio}` : ""}
                     </span>
                   ) : (
                     <span>Endereço não informado</span>

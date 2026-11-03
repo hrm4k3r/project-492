@@ -18,6 +18,7 @@ vi.mock("../../src/lib/mercadopago", () => ({
 vi.mock("../../src/lib/email", () => ({
   enviarEmailConfirmacaoPedido: (...a) => h.enviarEmail(...a),
   enviarEmailAtualizacaoStatus: vi.fn(),
+  enviarEmailNovoPedidoParaLoja: vi.fn(async () => {}),
 }));
 vi.mock("../../src/lib/bling", () => ({ emitirNFe: (...a) => h.emitirNFe(...a) }));
 
