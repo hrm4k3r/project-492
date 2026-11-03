@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "@/lib/mercadopago";
-import { enviarEmailConfirmacaoPedido } from "@/lib/email";
-import { emitirNFe } from "@/lib/bling";
+import { confirmarPagamento } from "@/lib/pedidos";
 
 function supabaseAdmin() {
   return createClient(
@@ -56,15 +55,7 @@ export async function POST(request) {
       return Response.json({ ok: true });
     }
 
-    await db
-      .from("orders")
-      .update({ status: "pago", payment_status: "pago" })
-      .eq("id", orderId);
-
-    enviarEmailConfirmacaoPedido(orderId).catch(console.error);
-    emitirNFe(orderId).catch((err) =>
-      console.error(`NF-e pedido ${orderId}:`, err.message)
-    );
+    await confirmarPagamento(db, orderId);
 
     return Response.json({ ok: true });
   } catch (err) {

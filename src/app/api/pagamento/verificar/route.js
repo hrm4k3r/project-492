@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "@/lib/mercadopago";
+import { confirmarPagamento } from "@/lib/pedidos";
 
 function supabaseAdmin() {
   return createClient(
@@ -44,10 +45,7 @@ export async function POST(request) {
         return Response.json({ status: "pendente", mpStatus: payment.status });
       }
 
-      await db
-        .from("orders")
-        .update({ status: "pago", payment_status: "pago" })
-        .eq("id", orderId);
+      await confirmarPagamento(db, orderId);
       return Response.json({ status: "pago" });
     }
 

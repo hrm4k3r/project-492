@@ -45,6 +45,8 @@ src/lib/
   bling.js         # Bling API client / NF-e (server-only)
   email.js         # Resend e-mails via fetch (server-only)
   frete.js         # Cotação de frete compartilhada (server-only)
+  pedidos.js       # confirmarPagamento(): único ponto que marca pago e dispara e-mail + NF-e (server-only)
+  adminAuth.js     # requisicaoDeAdmin(request): confere Bearer token + role admin (server-only)
   melhorenvio.js    # Shipping API client (server-only — never import from client components)
   planilha.js       # CSV import/export for products
   useConfiguracoes.js # Hook for store configuration from Supabase
@@ -59,7 +61,8 @@ supabase/           # SQL schema files (run setup_completo.sql for a fresh datab
 - **Security:** Supabase Row-Level Security (RLS) is the enforcement layer. `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS — only use it in server-side API routes.
 - **Shipping:** Two modes — Melhor Envio API (dynamic rates via OAuth token stored in `integracoes` table) and static `freight_rules` table as fallback.
 - **Orders:** o cliente NÃO tem INSERT em `orders`/`order_items` (RLS). `POST /api/pedidos/criar` (Bearer token) recalcula preços, cupom (`validate_coupon`) e frete no servidor e grava o pedido com a service role. Nunca confie em valores vindos do navegador.
-- **Payments:** Mercado Pago Checkout Bricks — `POST /api/pagamento/criar` cobra `orders.total` do banco e grava `payment_id`; o webhook (`pagamento/webhook`) e o polling (`pagamento/verificar`) só marcam `pago` após consultar o pagamento na API do MP e conferir `external_reference` e valor. `verificar` usa o `payment_id` salvo no pedido, nunca um id enviado pelo cliente. Ao pagar: e-mail de confirmação (Resend) e NF-e (Bling).
+- **Payments:** Mercado Pago Checkout Bricks — `POST /api/pagamento/criar` cobra `orders.total` do banco e grava `payment_id`; o webhook (`pagamento/webhook`) e o polling (`pagamento/verificar`) só marcam `pago` após consultar o pagamento na API do MP e conferir `external_reference` e valor. `verificar` usa o `payment_id` salvo no pedido, nunca um id enviado pelo cliente. Webhook e polling confirmam via `confirmarPagamento()` (`lib/pedidos.js`), que usa UPDATE condicional para disparar e-mail (Resend) e NF-e (Bling) uma única vez.
+- **OAuth Bling/Melhor Envio:** `conectar` exige token de admin e devolve `{ url }` (o painel redireciona); o `state` fica em cookie httpOnly. Nunca volte a expor como link simples.
 - **Path alias:** `@/*` resolves to `./src/*`.
 
 ### Database tables (Supabase/PostgreSQL)

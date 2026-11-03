@@ -24,6 +24,17 @@ function ConexaoMelhorEnvio() {
 
   const resultado = searchParams.get("melhorenvio");
 
+  // A rota exige o token do admin, então não dá para ser um link simples.
+  async function conectar() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch("/api/melhorenvio/conectar", {
+      headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.url) window.location.href = data.url;
+    else alert(data.error ?? "Não foi possível iniciar a conexão.");
+  }
+
   return (
     <div className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
       <div>
@@ -48,10 +59,10 @@ function ConexaoMelhorEnvio() {
           </p>
         )}
       </div>
-      <a href="/api/melhorenvio/conectar" className="btn-outline !py-2.5 text-xs">
+      <button type="button" onClick={conectar} className="btn-outline !py-2.5 text-xs">
         <FontAwesomeIcon icon={faLink} />
         {status?.conectado ? "Reconectar" : "Conectar Melhor Envio"}
-      </a>
+      </button>
     </div>
   );
 }

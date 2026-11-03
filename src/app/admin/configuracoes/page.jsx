@@ -21,6 +21,17 @@ function ConexaoBling() {
 
   const resultado = searchParams.get("bling");
 
+  // A rota exige o token do admin, então não dá para ser um link simples.
+  async function conectar() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch("/api/bling/conectar", {
+      headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.url) window.location.href = data.url;
+    else alert(data.error ?? "Não foi possível iniciar a conexão.");
+  }
+
   return (
     <section className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
       <div>
@@ -51,10 +62,10 @@ function ConexaoBling() {
           </p>
         )}
       </div>
-      <a href="/api/bling/conectar" className="btn-outline !py-2.5 text-xs">
+      <button type="button" onClick={conectar} className="btn-outline !py-2.5 text-xs">
         <FontAwesomeIcon icon={faLink} />
         {status?.conectado ? "Reconectar" : "Conectar Bling"}
-      </a>
+      </button>
     </section>
   );
 }
