@@ -54,6 +54,11 @@ create policy "Usuário vê o próprio perfil"
 create policy "Usuário atualiza o próprio perfil"
   on profiles for update using (auth.uid() = id);
 
+-- Sem restringir colunas, o cliente poderia fazer update profiles set role = 'admin'.
+-- O documento (CPF/CNPJ) é gravado pelo servidor (service_role).
+revoke update on profiles from anon, authenticated;
+grant update (full_name, phone) on profiles to authenticated;
+
 create policy "Usuário cria o próprio perfil"
   on profiles for insert with check (auth.uid() = id);
 

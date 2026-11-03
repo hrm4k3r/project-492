@@ -22,6 +22,7 @@ Copy `.env.local.example` to `.env.local` and fill in:
 - `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` / `MERCADOPAGO_ACCESS_TOKEN` — Mercado Pago (Checkout Bricks); o token é server-only
 - `RESEND_API_KEY` / `RESEND_FROM_EMAIL` — e-mails transacionais (chamados via `fetch`, sem o pacote `resend`)
 - `BLING_CLIENT_ID` / `BLING_CLIENT_SECRET` / `BLING_REDIRECT_URI` / `BLING_ESTADO_ORIGEM` — Bling (emissão de NF-e)
+- `BLING_FORMA_PGTO_PIX` / `BLING_FORMA_PGTO_CREDITO` / `BLING_FORMA_PGTO_DEBITO` — ids das formas de pagamento na conta Bling; a NF-e usa o tipo real do pagamento no Mercado Pago
 - `MELHORENVIO_*` — shipping integration OAuth credentials
 - `MELHORENVIO_CEP_ORIGEM` — store origin ZIP code for shipping calculation
 
@@ -45,6 +46,7 @@ src/lib/
   bling.js         # Bling API client / NF-e (server-only)
   email.js         # Resend e-mails via fetch (server-only)
   frete.js         # Cotação de frete compartilhada (server-only)
+  documento.js     # Validação de CPF/CNPJ (client e server)
   pedidos.js       # confirmarPagamento(): único ponto que marca pago e dispara e-mail + NF-e (server-only)
   adminAuth.js     # requisicaoDeAdmin(request): confere Bearer token + role admin (server-only)
   melhorenvio.js    # Shipping API client (server-only — never import from client components)
@@ -60,7 +62,7 @@ supabase/           # SQL schema files (run setup_completo.sql for a fresh datab
 - **Auth & roles:** Supabase Auth extended with a `profiles` table (role: `customer` | `admin`). Admin routes check role via `AuthContext`.
 - **Security:** Supabase Row-Level Security (RLS) is the enforcement layer. `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS — only use it in server-side API routes.
 - **Shipping:** Two modes — Melhor Envio API (dynamic rates via OAuth token stored in `integracoes` table) and static `freight_rules` table as fallback.
-- **Orders:** todo pedido (inclusive retirada na loja) exige endereço completo, pois a NF-e precisa dos dados do destinatário. o cliente NÃO tem INSERT em `orders`/`order_items` (RLS). `POST /api/pedidos/criar` (Bearer token) recalcula preços, cupom (`validate_coupon`) e frete no servidor e grava o pedido com a service role. Nunca confie em valores vindos do navegador.
+- **Orders:** CPF/CNPJ válido é obrigatório e gravado no perfil pelo servidor (o cliente não tem UPDATE em `profiles.documento` nem em `role`; ver `schema_profiles_seguro.sql`). todo pedido (inclusive retirada na loja) exige endereço completo, pois a NF-e precisa dos dados do destinatário. o cliente NÃO tem INSERT em `orders`/`order_items` (RLS). `POST /api/pedidos/criar` (Bearer token) recalcula preços, cupom (`validate_coupon`) e frete no servidor e grava o pedido com a service role. Nunca confie em valores vindos do navegador.
 - **Payments:** Mercado Pago Checkout Bricks — `POST /api/pagamento/criar` cobra `orders.total` do banco e grava `payment_id`; o webhook (`pagamento/webhook`) e o polling (`pagamento/verificar`) só marcam `pago` após consultar o pagamento na API do MP e conferir `external_reference` e valor. `verificar` usa o `payment_id` salvo no pedido, nunca um id enviado pelo cliente. Webhook e polling confirmam via `confirmarPagamento()` (`lib/pedidos.js`), que usa UPDATE condicional para disparar e-mail (Resend) e NF-e (Bling) uma única vez.
 - **OAuth Bling/Melhor Envio:** `conectar` exige token de admin e devolve `{ url }` (o painel redireciona); o `state` fica em cookie httpOnly. Nunca volte a expor como link simples.
 - **Path alias:** `@/*` resolves to `./src/*`.

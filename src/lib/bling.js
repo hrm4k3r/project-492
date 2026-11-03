@@ -1,5 +1,6 @@
 // ATENÇÃO: server-only. Nunca importe em componentes client.
 import { createClient } from "@supabase/supabase-js";
+import { buscarPagamento } from "./mercadopago";
 
 const BLING_BASE = "https://www.bling.com.br/Api/v3";
 const INTEGRACAO_ID = "bling";
@@ -121,6 +122,27 @@ async function obterAccessTokenValido() {
 
 // ─── NF-e ────────────────────────────────────────────────────────────────────
 
+// Tipo de pagamento do Mercado Pago -> variável com o id da forma de pagamento no Bling.
+// Os ids são da conta Bling da loja (Preferências > Formas de pagamento), por isso vêm do ambiente.
+const FORMA_PAGAMENTO_ENV = {
+  bank_transfer: "BLING_FORMA_PGTO_PIX",
+  credit_card: "BLING_FORMA_PGTO_CREDITO",
+  debit_card: "BLING_FORMA_PGTO_DEBITO",
+};
+
+async function formaPagamentoDoPedido(paymentId) {
+  if (!paymentId) throw new Error("Pedido sem pagamento registrado (payment_id).");
+
+  const payment = await buscarPagamento(String(paymentId));
+  const tipo = payment?.payment_type_id;
+  const variavel = FORMA_PAGAMENTO_ENV[tipo];
+  if (!variavel) throw new Error(`Tipo de pagamento sem mapeamento para o Bling: ${tipo}.`);
+
+  const id = Number(process.env[variavel]);
+  if (!id) throw new Error(`Defina ${variavel} com o id da forma de pagamento no Bling (${tipo}).`);
+  return id;
+}
+
 /**
  * Emite NF-e no Bling para o pedido informado.
  * Lança erro se o pedido não tiver dados suficientes.
@@ -132,7 +154,7 @@ export async function emitirNFe(orderId) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select(
-      `id, total, subtotal, frete, desconto, created_at,
+      `id, total, subtotal, frete, desconto, created_at, payment_id,
        order_items ( id, titulo, preco_unitario, quantidade, subtotal, produto_id,
          produtos ( ncm, unidade, cfop )
        ),
@@ -154,6 +176,8 @@ export async function emitirNFe(orderId) {
     const nomes = itensSemNcm.map((i) => i.titulo).join(", ");
     throw new Error(`Produto(s) sem NCM: ${nomes}. Preencha o NCM antes de emitir a NF-e.`);
   }
+
+  const formaPagamentoBling = await formaPagamentoDoPedido(order.payment_id);
 
   const estadoOrigem = process.env.BLING_ESTADO_ORIGEM ?? "SP";
   const docLimpo = profile.documento.replace(/\D/g, "");
@@ -198,7 +222,7 @@ export async function emitirNFe(orderId) {
       {
         dataVencimento: new Date(order.created_at).toISOString().slice(0, 10),
         valor: Number(order.total),
-        formaPagamento: { id: 17 }, // 17 = Pix no Bling
+        formaPagamento: { id: formaPagamentoBling },
       },
     ],
     transporte: {

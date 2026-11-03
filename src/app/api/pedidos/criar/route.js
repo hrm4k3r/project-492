@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { cotarFrete } from "../../../../lib/frete";
+import { documentoValido, somenteDigitos } from "../../../../lib/documento";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,12 @@ export async function POST(request) {
     const { data: { user } } = await db.auth.getUser(token);
     if (!user) return Response.json({ error: "Não autorizado" }, { status: 401 });
 
-    const { itens, tipoEntrega, addressId, freteServico, cupom } = await request.json();
+    const { itens, tipoEntrega, addressId, freteServico, cupom, documento } = await request.json();
+
+    // CPF/CNPJ obrigatório e válido: a NF-e é emitida automaticamente após o pagamento.
+    if (!documentoValido(documento)) {
+      return Response.json({ error: "Informe um CPF ou CNPJ válido." }, { status: 400 });
+    }
 
     if (!Array.isArray(itens) || itens.length === 0 || itens.length > 100) {
       return Response.json({ error: "Carrinho vazio ou inválido." }, { status: 400 });
@@ -139,6 +145,14 @@ export async function POST(request) {
     }
 
     const total = arredondar(Math.max(0, subtotal - desconto) + frete);
+
+    const { error: documentoError } = await db
+      .from("profiles")
+      .update({ documento: somenteDigitos(documento) })
+      .eq("id", user.id);
+    if (documentoError) {
+      return Response.json({ error: "Não foi possível salvar o CPF/CNPJ." }, { status: 500 });
+    }
 
     const { data: order, error: orderError } = await db
       .from("orders")

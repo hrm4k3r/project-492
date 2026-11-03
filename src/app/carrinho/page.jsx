@@ -10,6 +10,7 @@ import AddressForm from "../components/AddressForm";
 import { LOJA, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
 import { semOtimizar } from "../../lib/imagem";
+import { documentoValido } from "../../lib/documento";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock, faArrowRight,
@@ -163,6 +164,10 @@ export default function Carrinho() {
       );
       return;
     }
+    if (!documentoValido(documento)) {
+      setErro("Informe um CPF ou CNPJ válido: ele é necessário para a nota fiscal.");
+      return;
+    }
     if (tipoEntrega === "entrega") {
       if (!selecionada && !freteGratisPorValor) {
         setErro("Não foi possível calcular o frete para esse endereço.");
@@ -171,12 +176,6 @@ export default function Carrinho() {
     }
 
     setFinalizando(true);
-
-    // Salva CPF/CNPJ no perfil se informado
-    const documentoLimpo = documento.replace(/\D/g, "");
-    if (documentoLimpo.length === 11 || documentoLimpo.length === 14) {
-      await supabase.from("profiles").update({ documento: documentoLimpo }).eq("id", user.id);
-    }
 
     // O servidor recalcula preços, cupom e frete; o total exibido aqui é só informativo.
     const { data: { session } } = await supabase.auth.getSession();
@@ -192,6 +191,7 @@ export default function Carrinho() {
         addressId: selectedAddress.id,
         freteServico: selecionada?.servico ?? null,
         cupom: couponResult?.valid ? coupon.trim() : null,
+        documento,
       }),
     });
     const body = await res.json().catch(() => ({}));
@@ -536,7 +536,7 @@ export default function Carrinho() {
           {user && (
             <div className="border-t border-cardBorder pt-4">
               <label htmlFor="documento" className="block text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55">
-                CPF / CNPJ <span className="normal-case tracking-normal">(para nota fiscal)</span>
+                CPF / CNPJ <span className="normal-case tracking-normal">(obrigatório, para nota fiscal)</span>
               </label>
               <input
                 id="documento"
