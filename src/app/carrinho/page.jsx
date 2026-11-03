@@ -11,6 +11,7 @@ import { LOJA, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
 import { semOtimizar } from "../../lib/imagem";
 import { documentoValido } from "../../lib/documento";
+import { mesmaCidade } from "../../lib/motoboy";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock, faArrowRight,
@@ -83,7 +84,7 @@ export default function Carrinho() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { items, updateQuantity, removeItem, subtotal, clearCart } = useCart();
-  const { freteGratisAcima, primeiraCompraPercent } = useConfiguracoes();
+  const { freteGratisAcima, primeiraCompraPercent, motoboyPreco, motoboyCidade } = useConfiguracoes();
 
   const [cep, setCep] = useState("");
   const [tipoEntrega, setTipoEntrega] = useState("entrega");
@@ -146,7 +147,16 @@ export default function Carrinho() {
   const desconto = Math.min(subtotal, descontoCupom);
 
   const freteGratisPorValor = freteGratisAcima > 0 && subtotal >= freteGratisAcima;
-  const freteValor = tipoEntrega === "retirada" ? 0 : freteGratisPorValor ? 0 : (selecionada?.preco ?? 0);
+  const motoboyAtivo = motoboyPreco > 0 && motoboyCidade.trim() !== "";
+  const enderecoAtendidoPorMotoboy = mesmaCidade(selectedAddress?.city, motoboyCidade);
+  const freteValor =
+    tipoEntrega === "retirada"
+      ? 0
+      : tipoEntrega === "motoboy"
+      ? motoboyPreco
+      : freteGratisPorValor
+      ? 0
+      : (selecionada?.preco ?? 0);
   const total = Math.max(0, subtotal - desconto) + freteValor;
 
   const handleFinalizar = async () => {
@@ -166,6 +176,10 @@ export default function Carrinho() {
     }
     if (!documentoValido(documento)) {
       setErro("Informe um CPF ou CNPJ válido: ele é necessário para a nota fiscal.");
+      return;
+    }
+    if (tipoEntrega === "motoboy" && !enderecoAtendidoPorMotoboy) {
+      setErro(`O motoboy atende apenas ${motoboyCidade}. Escolha um endereço nessa cidade.`);
       return;
     }
     if (tipoEntrega === "entrega") {
@@ -309,7 +323,7 @@ export default function Carrinho() {
           <section className="card-surface p-5 md:p-6">
             <h2 className="font-display text-2xl font-semibold text-primary">Como você quer receber?</h2>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className={`mt-4 grid gap-3 sm:grid-cols-2 ${motoboyAtivo ? "lg:grid-cols-3" : ""}`}>
               <button type="button" onClick={() => setTipoEntrega("entrega")} className={opcao(tipoEntrega === "entrega")}>
                 <FontAwesomeIcon icon={faTruckFast} className="mt-1 text-lg text-terracotta" />
                 <span>
@@ -317,6 +331,17 @@ export default function Carrinho() {
                   <span className="block text-sm text-primary/60">Frete calculado pelo seu CEP</span>
                 </span>
               </button>
+              {motoboyAtivo && (
+                <button type="button" onClick={() => setTipoEntrega("motoboy")} className={opcao(tipoEntrega === "motoboy")}>
+                  <FontAwesomeIcon icon={faTruckFast} className="mt-1 text-lg text-terracotta" />
+                  <span>
+                    <span className="block font-medium text-primary">Motoboy</span>
+                    <span className="block text-sm text-primary/60">
+                      {formatBRL(motoboyPreco)} &middot; só {motoboyCidade}
+                    </span>
+                  </span>
+                </button>
+              )}
               <button type="button" onClick={() => setTipoEntrega("retirada")} className={opcao(tipoEntrega === "retirada")}>
                 <FontAwesomeIcon icon={faStore} className="mt-1 text-lg text-terracotta" />
                 <span>
@@ -330,6 +355,13 @@ export default function Carrinho() {
               <p className="mt-4 rounded-xl bg-sand p-4 text-sm leading-relaxed text-primary/75">
                 Retire seu pedido na loja ({LOJA.endereco}). Combinamos o
                 horário pelo WhatsApp depois que o pagamento for confirmado.
+              </p>
+            )}
+
+            {tipoEntrega === "motoboy" && selectedAddress && !enderecoAtendidoPorMotoboy && (
+              <p className="mt-4 rounded-xl bg-sand p-4 text-sm leading-relaxed text-terracotta">
+                O motoboy atende apenas {motoboyCidade}. Escolha ou cadastre um endereço nessa cidade, ou use
+                "Receber em casa".
               </p>
             )}
 
@@ -478,10 +510,12 @@ export default function Carrinho() {
           </div>
 
           <div className="flex justify-between text-sm text-primary/70">
-            <span>Frete {tipoEntrega === "entrega" && selecionada?.servico ? `(${selecionada.servico})` : ""}</span>
+            <span>Frete {tipoEntrega === "motoboy" ? "(Motoboy)" : tipoEntrega === "entrega" && selecionada?.servico ? `(${selecionada.servico})` : ""}</span>
             <span>
               {tipoEntrega === "retirada"
                 ? "Retirada na loja"
+                : tipoEntrega === "motoboy"
+                ? formatBRL(motoboyPreco)
                 : freteGratisPorValor
                 ? "Grátis"
                 : loadingFrete

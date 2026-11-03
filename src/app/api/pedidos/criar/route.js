@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { cotarFrete } from "../../../../lib/frete";
 import { documentoValido, somenteDigitos } from "../../../../lib/documento";
+import { MOTOBOY_PADRAO, MOTOBOY_SERVICO, mesmaCidade } from "../../../../lib/motoboy";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export async function POST(request) {
     let frete = 0;
     let freteServicoFinal = RETIRADA_SERVICO;
 
-    if (tipoEntrega !== "entrega" && tipoEntrega !== "retirada") {
+    if (!["entrega", "retirada", "motoboy"].includes(tipoEntrega)) {
       return Response.json({ error: "Tipo de entrega inválido." }, { status: 400 });
     }
 
@@ -122,7 +123,24 @@ export async function POST(request) {
     }
     const addressIdFinal = endereco.id;
 
-    if (tipoEntrega === "entrega") {
+    if (tipoEntrega === "motoboy") {
+      const { data: cfgs } = await db
+        .from("configuracoes")
+        .select("chave, valor")
+        .in("chave", ["motoboy_preco", "motoboy_cidade"]);
+      const mapa = Object.fromEntries((cfgs ?? []).map((c) => [c.chave, c.valor]));
+      const precoMotoboy = Number(mapa.motoboy_preco ?? MOTOBOY_PADRAO.preco);
+      const cidadeMotoboy = String(mapa.motoboy_cidade ?? MOTOBOY_PADRAO.cidade);
+
+      if (!(precoMotoboy > 0) || !mesmaCidade(endereco.city, cidadeMotoboy)) {
+        return Response.json(
+          { error: `A entrega por motoboy atende apenas ${cidadeMotoboy}.` },
+          { status: 400 }
+        );
+      }
+      frete = arredondar(precoMotoboy);
+      freteServicoFinal = MOTOBOY_SERVICO;
+    } else if (tipoEntrega === "entrega") {
       const { data: cfg } = await db
         .from("configuracoes")
         .select("valor")

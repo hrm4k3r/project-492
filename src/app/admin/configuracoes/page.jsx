@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../../../config/supabase";
 import { invalidarConfiguracoes } from "../../../lib/useConfiguracoes";
+import { MOTOBOY_PADRAO } from "../../../lib/motoboy";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faLink, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import AdminTitulo from "../components/AdminTitulo";
@@ -73,6 +74,8 @@ function ConexaoBling() {
 export default function AdminConfiguracoes() {
   const [freteGratis, setFreteGratis] = useState("");
   const [primeiraCompra, setPrimeiraCompra] = useState("");
+  const [motoboyPreco, setMotoboyPreco] = useState("");
+  const [motoboyCidade, setMotoboyCidade] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mensagem, setMensagem] = useState(null);
@@ -83,6 +86,8 @@ export default function AdminConfiguracoes() {
       const mapa = Object.fromEntries((data ?? []).map((c) => [c.chave, c.valor]));
       setFreteGratis(String(mapa.frete_gratis_acima ?? 1000));
       setPrimeiraCompra(String(mapa.primeira_compra_percent ?? 10));
+      setMotoboyPreco(String(mapa.motoboy_preco ?? MOTOBOY_PADRAO.preco));
+      setMotoboyCidade(String(mapa.motoboy_cidade ?? MOTOBOY_PADRAO.cidade));
       setLoading(false);
     }
     carregar();
@@ -94,8 +99,13 @@ export default function AdminConfiguracoes() {
 
     const frete = Number(freteGratis);
     const percent = Number(primeiraCompra);
-    if (!(frete >= 0) || !(percent >= 0 && percent <= 100)) {
-      setMensagem({ ok: false, texto: "Confira os valores: o frete grátis não pode ser negativo e o desconto vai de 0 a 100." });
+    const motoboy = Number(motoboyPreco);
+    if (!(frete >= 0) || !(percent >= 0 && percent <= 100) || !(motoboy >= 0)) {
+      setMensagem({ ok: false, texto: "Confira os valores: frete e motoboy não podem ser negativos e o desconto vai de 0 a 100." });
+      return;
+    }
+    if (motoboy > 0 && !motoboyCidade.trim()) {
+      setMensagem({ ok: false, texto: "Informe a cidade atendida pelo motoboy." });
       return;
     }
 
@@ -104,6 +114,8 @@ export default function AdminConfiguracoes() {
     const { error } = await supabase.from("configuracoes").upsert([
       { chave: "frete_gratis_acima", valor: frete, updated_at: agora },
       { chave: "primeira_compra_percent", valor: percent, updated_at: agora },
+      { chave: "motoboy_preco", valor: motoboy, updated_at: agora },
+      { chave: "motoboy_cidade", valor: motoboyCidade.trim(), updated_at: agora },
     ]);
     setSaving(false);
 
@@ -150,6 +162,26 @@ export default function AdminConfiguracoes() {
             <input
               id="primeira" type="number" min="0" max="100" step="1" required
               value={primeiraCompra} onChange={(e) => setPrimeiraCompra(e.target.value)}
+              className={`${inputClass} mt-1.5 max-w-[12rem]`}
+            />
+          </section>
+
+          <section className={cardClass}>
+            <h2 className="font-display text-2xl font-semibold text-primary">Entrega por motoboy</h2>
+            <p className="mt-1 text-sm text-primary/55">
+              Opção de entrega local com preço fixo, disponível só para endereços da cidade informada. Não entra
+              no frete grátis. Use 0 para desativar.
+            </p>
+            <label htmlFor="motoboyCidade" className={`${labelClass} mt-5 block`}>Cidade atendida</label>
+            <input
+              id="motoboyCidade" type="text" placeholder="São Lourenço"
+              value={motoboyCidade} onChange={(e) => setMotoboyCidade(e.target.value)}
+              className={`${inputClass} mt-1.5 max-w-xs`}
+            />
+            <label htmlFor="motoboyPreco" className={`${labelClass} mt-4 block`}>Preço da entrega (R$)</label>
+            <input
+              id="motoboyPreco" type="number" min="0" step="0.01" required
+              value={motoboyPreco} onChange={(e) => setMotoboyPreco(e.target.value)}
               className={`${inputClass} mt-1.5 max-w-[12rem]`}
             />
           </section>
