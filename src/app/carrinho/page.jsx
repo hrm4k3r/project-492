@@ -155,11 +155,15 @@ export default function Carrinho() {
       router.push("/entrar?voltar=/carrinho");
       return;
     }
+    if (!selectedAddress) {
+      setErro(
+        tipoEntrega === "retirada"
+          ? "Cadastre seu endereço: ele é necessário para emitir a nota fiscal."
+          : "Selecione ou cadastre um endereço de entrega."
+      );
+      return;
+    }
     if (tipoEntrega === "entrega") {
-      if (!selectedAddress) {
-        setErro("Selecione ou cadastre um endereço de entrega.");
-        return;
-      }
       if (!selecionada && !freteGratisPorValor) {
         setErro("Não foi possível calcular o frete para esse endereço.");
         return;
@@ -185,7 +189,7 @@ export default function Carrinho() {
       body: JSON.stringify({
         itens: items.map((i) => ({ id: i.id, quantidade: i.quantidade })),
         tipoEntrega,
-        addressId: tipoEntrega === "retirada" ? null : selectedAddress.id,
+        addressId: selectedAddress.id,
         freteServico: selecionada?.servico ?? null,
         cupom: couponResult?.valid ? coupon.trim() : null,
       }),
@@ -322,26 +326,37 @@ export default function Carrinho() {
               </button>
             </div>
 
-            {tipoEntrega === "retirada" ? (
+            {tipoEntrega === "retirada" && (
               <p className="mt-4 rounded-xl bg-sand p-4 text-sm leading-relaxed text-primary/75">
                 Retire seu pedido na loja ({LOJA.endereco}). Combinamos o
                 horário pelo WhatsApp depois que o pagamento for confirmado.
               </p>
-            ) : (
-              <div className="mt-5">
+            )}
+
+            {/* O endereço é obrigatório em qualquer modalidade: a NF-e exige os dados do destinatário. */}
+            <div className="mt-5">
+                {tipoEntrega === "retirada" && (
+                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55">
+                    Seu endereço (necessário para a nota fiscal)
+                  </p>
+                )}
                 {!user ? (
                   <>
-                    <label className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55" htmlFor="cep">
-                      Digite seu CEP para estimar o frete
-                    </label>
-                    <input
-                      id="cep"
-                      value={cep}
-                      onChange={(e) => setCep(e.target.value)}
-                      placeholder="00000-000"
-                      inputMode="numeric"
-                      className="mt-1.5 w-full max-w-xs rounded-lg border border-cardBorder bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"
-                    />
+                    {tipoEntrega === "entrega" && (
+                      <>
+                        <label className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55" htmlFor="cep">
+                          Digite seu CEP para estimar o frete
+                        </label>
+                        <input
+                          id="cep"
+                          value={cep}
+                          onChange={(e) => setCep(e.target.value)}
+                          placeholder="00000-000"
+                          inputMode="numeric"
+                          className="mt-1.5 w-full max-w-xs rounded-lg border border-cardBorder bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"
+                        />
+                      </>
+                    )}
                     <p className="mt-3 text-sm text-primary/60">
                       Para finalizar a compra, você vai precisar{" "}
                       <Link href="/entrar?voltar=/carrinho" className="font-medium text-terracotta underline">
@@ -393,9 +408,9 @@ export default function Carrinho() {
                   </div>
                 )}
 
-                {loadingFrete && <p className="mt-4 text-sm text-primary/55">Calculando frete...</p>}
+                {tipoEntrega === "entrega" && loadingFrete && <p className="mt-4 text-sm text-primary/55">Calculando frete...</p>}
 
-                {!loadingFrete && opcoes.length > 0 && !freteGratisPorValor && (
+                {tipoEntrega === "entrega" && !loadingFrete && opcoes.length > 0 && !freteGratisPorValor && (
                   <div className="mt-5">
                     <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/55">Opções de envio</p>
                     <div className="mt-2 flex flex-col gap-3">
@@ -426,9 +441,8 @@ export default function Carrinho() {
                   </div>
                 )}
 
-                {aviso && <p className="mt-3 text-xs text-primary/55">{aviso}</p>}
-              </div>
-            )}
+                {tipoEntrega === "entrega" && aviso && <p className="mt-3 text-xs text-primary/55">{aviso}</p>}
+            </div>
           </section>
         </div>
 

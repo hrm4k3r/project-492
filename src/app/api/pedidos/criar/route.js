@@ -15,7 +15,7 @@ function supabaseAdmin() {
 const arredondar = (n) => Math.round(n * 100) / 100;
 
 // POST /api/pedidos/criar
-// { itens: [{ id, quantidade }], tipoEntrega: "entrega" | "retirada", addressId?, freteServico?, cupom? }
+// { itens: [{ id, quantidade }], tipoEntrega: "entrega" | "retirada", addressId (obrigatório), freteServico?, cupom? }
 // Preços, cupom e frete são sempre recalculados aqui: nada de valor vindo do navegador.
 export async function POST(request) {
   try {
@@ -91,20 +91,32 @@ export async function POST(request) {
     // Frete
     let frete = 0;
     let freteServicoFinal = RETIRADA_SERVICO;
-    let addressIdFinal = null;
+
+    if (tipoEntrega !== "entrega" && tipoEntrega !== "retirada") {
+      return Response.json({ error: "Tipo de entrega inválido." }, { status: 400 });
+    }
+
+    // Endereço completo é obrigatório em qualquer modalidade (inclusive retirada):
+    // a NF-e precisa dos dados do destinatário.
+    const { data: endereco } = await db
+      .from("addresses")
+      .select("id, cep, street, number, neighborhood, city, state")
+      .eq("id", addressId ?? "")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!endereco) {
+      return Response.json({ error: "Informe um endereço válido para o pedido." }, { status: 400 });
+    }
+    const camposObrigatorios = ["cep", "street", "number", "neighborhood", "city", "state"];
+    if (camposObrigatorios.some((c) => !String(endereco[c] ?? "").trim())) {
+      return Response.json(
+        { error: "Endereço incompleto: preencha rua, número, bairro, cidade, UF e CEP." },
+        { status: 400 }
+      );
+    }
+    const addressIdFinal = endereco.id;
 
     if (tipoEntrega === "entrega") {
-      const { data: endereco } = await db
-        .from("addresses")
-        .select("id, cep")
-        .eq("id", addressId ?? "")
-        .eq("profile_id", user.id)
-        .maybeSingle();
-      if (!endereco) {
-        return Response.json({ error: "Endereço de entrega inválido." }, { status: 400 });
-      }
-      addressIdFinal = endereco.id;
-
       const { data: cfg } = await db
         .from("configuracoes")
         .select("valor")
@@ -124,8 +136,6 @@ export async function POST(request) {
       }
       frete = gratis ? 0 : escolhida.preco;
       freteServicoFinal = escolhida?.servico ?? null;
-    } else if (tipoEntrega !== "retirada") {
-      return Response.json({ error: "Tipo de entrega inválido." }, { status: 400 });
     }
 
     const total = arredondar(Math.max(0, subtotal - desconto) + frete);
