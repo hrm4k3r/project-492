@@ -32,8 +32,13 @@ export function AuthProvider({ children }) {
 
     loadSession();
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       handleSession(session);
+      // Link de recuperação no formato padrão do Supabase: volta para o site já com sessão.
+      // Leva direto para a tela de nova senha em vez de deixar o cliente "logado" na home.
+      if (event === "PASSWORD_RECOVERY" && window.location.pathname !== "/redefinir-senha") {
+        window.location.replace("/redefinir-senha");
+      }
     });
 
     return () => subscription.subscription.unsubscribe();

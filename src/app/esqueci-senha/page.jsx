@@ -20,7 +20,9 @@ export default function EsqueciSenha() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
     setLoading(false);
 
     // Não revelamos se o e-mail tem conta; só avisamos de limite de envios.
