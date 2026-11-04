@@ -264,6 +264,9 @@ create table if not exists orders (
   payment_status text not null default 'pendente'
     check (payment_status in ('pendente', 'pago', 'falhou', 'reembolsado')),
   codigo_rastreio text,                 -- informado no painel ao marcar como enviado
+  nfe_id text,                          -- id da NF-e no Bling (gravado ao criar a nota)
+  nfe_status text,                      -- situação no Bling depois do envio à Sefaz
+  nfe_erro text,                        -- último erro da emissão (mostrado em Admin > Pedidos)
   payment_method text check (payment_method in ('pix')),
   payment_details jsonb,
   created_at timestamptz not null default now()

@@ -120,6 +120,7 @@ async function obterAccessTokenValido() {
   return novosTokens.access_token;
 }
 
+
 // ─── NF-e ────────────────────────────────────────────────────────────────────
 
 // Tipo de pagamento do Mercado Pago -> variável com o id da forma de pagamento no Bling.
@@ -130,67 +131,71 @@ const FORMA_PAGAMENTO_ENV = {
   debit_card: "BLING_FORMA_PGTO_DEBITO",
 };
 
-async function formaPagamentoDoPedido(paymentId) {
-  if (!paymentId) throw new Error("Pedido sem pagamento registrado (payment_id).");
-
-  const payment = await buscarPagamento(String(paymentId));
-  const tipo = payment?.payment_type_id;
-  const variavel = FORMA_PAGAMENTO_ENV[tipo];
-  if (!variavel) throw new Error(`Tipo de pagamento sem mapeamento para o Bling: ${tipo}.`);
-
+function idFormaPagamento(variavel, tipo) {
   const id = Number(process.env[variavel]);
   if (!id) throw new Error(`Defina ${variavel} com o id da forma de pagamento no Bling (${tipo}).`);
   return id;
 }
 
-/**
- * Emite NF-e no Bling para o pedido informado.
- * Lança erro se o pedido não tiver dados suficientes.
- */
-export async function emitirNFe(orderId) {
-  const supabase = supabaseAdmin();
+async function formaPagamentoDoPedido(paymentId) {
+  // Pedido confirmado à mão no painel não tem payment_id: a loja só aceita Pix, então é Pix.
+  if (!paymentId) return idFormaPagamento("BLING_FORMA_PGTO_PIX", "pix");
 
-  // Busca pedido com itens, endereço e perfil
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select(
-      `id, total, subtotal, frete, desconto, created_at, payment_id,
-       order_items ( id, titulo, preco_unitario, quantidade, subtotal, produto_id,
-         produtos ( ncm, unidade, cfop )
-       ),
-       addresses ( street, number, complement, neighborhood, city, state, cep ),
-       profiles ( full_name, documento )`
-    )
-    .eq("id", orderId)
-    .single();
+  const payment = await buscarPagamento(String(paymentId));
+  const tipo = payment?.payment_type_id;
+  const variavel = FORMA_PAGAMENTO_ENV[tipo];
+  if (!variavel) throw new Error(`Tipo de pagamento sem mapeamento para o Bling: ${tipo}.`);
+  return idFormaPagamento(variavel, tipo);
+}
 
-  if (orderError || !order) throw new Error(`Pedido ${orderId} não encontrado.`);
+function mensagemDeErro(data, status) {
+  const mensagem = data?.error?.message;
+  const campos = data?.error?.fields?.map((f) => f.msg).filter(Boolean).join("; ");
+  if (mensagem && campos) return `${mensagem}: ${campos}`;
+  return mensagem ?? (campos || `Bling erro ${status}`);
+}
 
-  const { addresses: address, profiles: profile, order_items: itens } = order;
-
-  if (!address) throw new Error("Pedido sem endereço de entrega.");
-  if (!profile?.documento) throw new Error("Cliente sem CPF/CNPJ cadastrado (necessário para NF-e).");
-
-  const itensSemNcm = itens.filter((i) => !i.produtos?.ncm);
-  if (itensSemNcm.length > 0) {
-    const nomes = itensSemNcm.map((i) => i.titulo).join(", ");
-    throw new Error(`Produto(s) sem NCM: ${nomes}. Preencha o NCM antes de emitir a NF-e.`);
+// Chamada autenticada à API do Bling. Erro de rede/timeout vira "semResposta": nesse caso a
+// operação pode ter sido feita mesmo assim, e quem chama precisa tratar isso.
+async function chamarBling(token, caminho, { method = "GET", body } = {}) {
+  let res;
+  try {
+    res = await fetch(`${BLING_BASE}${caminho}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(25000),
+    });
+  } catch (err) {
+    const erro = new Error(`Sem resposta do Bling (${err.message}).`);
+    erro.semResposta = true;
+    throw erro;
   }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(mensagemDeErro(data, res.status));
+  return data;
+}
 
-  const formaPagamentoBling = await formaPagamentoDoPedido(order.payment_id);
+const SEM_RESPOSTA_AO_CRIAR =
+  "O Bling não respondeu ao criar a nota. Confira em Vendas > Notas Fiscais de Saída se ela foi criada antes de tentar de novo, para não emitir duas.";
 
+function montarPayload(order, formaPagamentoBling) {
+  const { addresses: address, profiles: profile, order_items: itens } = order;
   const estadoOrigem = process.env.BLING_ESTADO_ORIGEM ?? "SP";
   const docLimpo = profile.documento.replace(/\D/g, "");
-  const tipoPessoa = docLimpo.length === 14 ? "J" : "F";
 
-  const payload = {
+  return {
     tipo: 1,
     finalidade: 1,
     naturezaOperacao: "VENDA DE MERCADORIA AO CONSUMIDOR",
     dataOperacao: new Date(order.created_at).toISOString().replace("T", " ").slice(0, 19),
     contato: {
       nome: profile.full_name || "Cliente",
-      tipoPessoa,
+      tipoPessoa: docLimpo.length === 14 ? "J" : "F",
       numeroDocumento: docLimpo,
       endereco: {
         endereco: address.street,
@@ -230,23 +235,93 @@ export async function emitirNFe(orderId) {
       frete: Number(order.frete),
     },
   };
+}
 
-  const accessToken = await obterAccessTokenValido();
-  const res = await fetch(`${BLING_BASE}/nfe`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
+/**
+ * Emite a NF-e do pedido no Bling em duas etapas: cria a nota (POST /nfe) e a envia à Sefaz
+ * (POST /nfe/{id}/enviar). O id da nota é gravado no pedido assim que ela é criada, então uma
+ * nova tentativa depois de falha no envio só reenvia a mesma nota, nunca cria outra.
+ * O resultado (nfe_id, nfe_status, nfe_erro) fica no pedido e aparece em Admin > Pedidos.
+ */
+export async function emitirNFe(orderId) {
+  const supabase = supabaseAdmin();
+  try {
+    return await emitir(supabase, orderId);
+  } catch (err) {
+    await supabase
+      .from("orders")
+      .update({ nfe_erro: String(err.message ?? err).slice(0, 300) })
+      .eq("id", orderId);
+    throw err;
+  }
+}
 
-  const data = await res.json();
-  if (!res.ok) {
-    const msg = data?.error?.message ?? data?.error?.fields?.map((f) => f.msg).join("; ") ?? `Bling NF-e erro ${res.status}`;
-    throw new Error(msg);
+async function emitir(supabase, orderId) {
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select(
+      `id, total, subtotal, frete, desconto, created_at, payment_id, nfe_id, nfe_status,
+       order_items ( id, titulo, preco_unitario, quantidade, subtotal, produto_id,
+         produtos ( ncm, unidade, cfop )
+       ),
+       addresses ( street, number, complement, neighborhood, city, state, cep ),
+       profiles ( full_name, documento )`
+    )
+    .eq("id", orderId)
+    .single();
+
+  if (orderError || !order) throw new Error(`Pedido ${orderId} não encontrado.`);
+
+  // Já enviada à Sefaz: nada a fazer (evita nota duplicada por reenvio de webhook ou clique repetido).
+  if (order.nfe_id && order.nfe_status) return { id: order.nfe_id, situacao: order.nfe_status, jaEmitida: true };
+
+  let nfeId = order.nfe_id;
+
+  if (!nfeId) {
+    const { addresses: address, profiles: profile, order_items: itens } = order;
+
+    if (!address) throw new Error("Pedido sem endereço de entrega.");
+    if (!profile?.documento) throw new Error("Cliente sem CPF/CNPJ cadastrado (necessário para NF-e).");
+
+    const itensSemNcm = itens.filter((i) => !i.produtos?.ncm);
+    if (itensSemNcm.length > 0) {
+      const nomes = itensSemNcm.map((i) => i.titulo).join(", ");
+      throw new Error(`Produto(s) sem NCM: ${nomes}. Preencha o NCM antes de emitir a NF-e.`);
+    }
+
+    const formaPagamentoBling = await formaPagamentoDoPedido(order.payment_id);
+    const accessToken = await obterAccessTokenValido();
+
+    let criada;
+    try {
+      criada = await chamarBling(accessToken, "/nfe", {
+        method: "POST",
+        body: montarPayload(order, formaPagamentoBling),
+      });
+    } catch (err) {
+      throw err.semResposta ? new Error(SEM_RESPOSTA_AO_CRIAR) : err;
+    }
+
+    nfeId = String(criada?.data?.id ?? "");
+    if (!nfeId) throw new Error("O Bling não devolveu o id da nota criada.");
+
+    // Grava já: se o envio falhar, a nova tentativa reaproveita esta nota.
+    await supabase.from("orders").update({ nfe_id: nfeId, nfe_erro: null }).eq("id", orderId);
   }
 
-  return data?.data ?? data;
+  const accessToken = await obterAccessTokenValido();
+  await chamarBling(accessToken, `/nfe/${encodeURIComponent(nfeId)}/enviar?enviarEmail=false`, { method: "POST" });
+
+  // Situação depois do envio. A transmissão à Sefaz pode levar um tempo, então falha aqui não
+  // invalida o envio: guarda "enviada" e o lojista confere no Bling.
+  let situacao = "enviada";
+  try {
+    const consulta = await chamarBling(accessToken, `/nfe/${encodeURIComponent(nfeId)}`);
+    situacao = String(consulta?.data?.situacao ?? "enviada");
+  } catch {
+    // mantém "enviada"
+  }
+
+  await supabase.from("orders").update({ nfe_status: situacao, nfe_erro: null }).eq("id", orderId);
+  return { id: nfeId, situacao };
 }

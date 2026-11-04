@@ -27,6 +27,7 @@ export default function AdminPedidos() {
   const [aba, setAba] = useState("todos");
   const [busca, setBusca] = useState("");
   const [salvandoId, setSalvandoId] = useState(null);
+  const [emitindoId, setEmitindoId] = useState(null);
 
   useEffect(() => {
     const inicial = new URLSearchParams(window.location.search).get("status");
@@ -81,6 +82,31 @@ export default function AdminPedidos() {
         p.id === id ? { ...p, status, ...(codigoRastreio ? { codigo_rastreio: codigoRastreio } : {}) } : p
       )
     );
+  };
+
+  // Emite a NF-e (ou tenta de novo depois de erro). Atualiza só este pedido na lista.
+  const emitirNFe = async (pedido) => {
+    setEmitindoId(pedido.id);
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch("/api/bling/nfe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ orderId: pedido.id }),
+    });
+    const dados = await resp.json().catch(() => ({}));
+    const { data: atualizado } = await supabase
+      .from("orders")
+      .select("nfe_id, nfe_status, nfe_erro")
+      .eq("id", pedido.id)
+      .maybeSingle();
+    setEmitindoId(null);
+    if (atualizado) {
+      setPedidos((lista) => lista.map((p) => (p.id === pedido.id ? { ...p, ...atualizado } : p)));
+    }
+    if (!resp.ok) alert("NF-e não emitida: " + (dados.error ?? resp.statusText));
   };
 
   const contagem = useMemo(() => {
@@ -206,6 +232,29 @@ export default function AdminPedidos() {
                       <FontAwesomeIcon icon={faCheck} />
                       Confirmar pagamento
                     </button>
+                  </div>
+                )}
+
+                {["pago", "preparando", "enviado", "entregue"].includes(pedido.status) && (
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cardBorder bg-white p-4 text-sm">
+                    <p className={pedido.nfe_erro ? "text-terracotta" : "text-primary/75"}>
+                      {pedido.nfe_status ? (
+                        <><strong className="text-primary">NF-e enviada ao Bling</strong> · situação: {pedido.nfe_status}</>
+                      ) : pedido.nfe_erro ? (
+                        <><strong>NF-e não emitida:</strong> {pedido.nfe_erro}</>
+                      ) : (
+                        <><strong className="text-primary">NF-e ainda não emitida.</strong> Ela sai sozinha quando o Bling está conectado.</>
+                      )}
+                    </p>
+                    {!pedido.nfe_status && (
+                      <button
+                        onClick={() => emitirNFe(pedido)}
+                        disabled={emitindoId === pedido.id}
+                        className="btn-outline !py-2 text-xs disabled:opacity-60"
+                      >
+                        {emitindoId === pedido.id ? "Emitindo..." : pedido.nfe_erro ? "Tentar de novo" : "Emitir NF-e"}
+                      </button>
+                    )}
                   </div>
                 )}
 
