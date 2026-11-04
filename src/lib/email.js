@@ -430,3 +430,51 @@ export async function enviarEmailNovoPedidoParaLoja(orderId, { pago = true } = {
     console.error("Erro ao enviar aviso de novo pedido para a loja:", err);
   }
 }
+
+// Aviso de reposição: produtos que ficaram no estoque mínimo (ou menos) depois de um pedido pago.
+export function templateEstoqueBaixo(produtos) {
+  const linhas = produtos.map((p) => `
+    <tr>
+      <td style="padding:8px 0;font-size:14px;color:#5A2A14;border-bottom:1px solid #F7E3C5;">${escaparHtml(p.produto)}</td>
+      <td style="padding:8px 0;font-size:14px;text-align:right;white-space:nowrap;border-bottom:1px solid #F7E3C5;color:${Number(p.estoque) === 0 ? "#B85C38" : "#5A2A14"};">
+        ${Number(p.estoque) === 0 ? "<strong>Esgotado</strong>" : `restam <strong>${Number(p.estoque)}</strong>`}
+        <span style="color:#888;"> · mínimo ${Number(p.estoque_minimo)}</span>
+      </td>
+    </tr>`).join("");
+
+  return htmlBase({
+    nome: "equipe",
+    titulo: produtos.length === 1 ? "Hora de repor um produto" : "Hora de repor alguns produtos",
+    corTitulo: "#B85C38",
+    conteudo: `
+      <p style="margin:0 0 16px;font-size:15px;color:#5A2A14;">
+        Depois da última venda, ${produtos.length === 1 ? "este produto chegou" : "estes produtos chegaram"} à quantidade mínima de estoque:
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">${linhas}</table>
+      <p style="margin:0;font-size:13px;color:#888;">
+        Atualize o estoque em <a href="${SITE}/admin/produtos" style="color:#B85C38;">Admin &gt; Produtos</a>.
+      </p>`,
+    rodape: "Aviso de estoque · Curadoria da Mesa",
+  });
+}
+
+// Só envia se EMAIL_AVISO_LOJA estiver definido. Nunca lança erro.
+export async function enviarEmailEstoqueBaixo(produtos) {
+  const destinos = (process.env.EMAIL_AVISO_LOJA ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (destinos.length === 0 || !produtos?.length) return;
+
+  try {
+    await enviar({
+      to: destinos,
+      subject: produtos.length === 1
+        ? `Estoque baixo — ${produtos[0].produto}`
+        : `Estoque baixo — ${produtos.length} produtos para repor`,
+      html: templateEstoqueBaixo(produtos),
+    });
+  } catch (err) {
+    console.error("Erro ao enviar aviso de estoque baixo:", err);
+  }
+}

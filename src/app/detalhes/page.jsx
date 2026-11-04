@@ -159,6 +159,11 @@ export default function Detalhes() {
           <p className="mt-6 font-display text-4xl font-semibold text-terracotta">{formatBRL(produto.valor)}</p>
           <p className="mt-1 text-sm text-primary/55">Pagamento por Pix. Frete calculado no carrinho.</p>
 
+          {produto.estoque != null && produto.estoque <= 0 ? (
+            <p className="mt-8 w-fit rounded-full bg-terracotta/15 px-6 py-3 text-sm font-medium uppercase tracking-wide text-terracotta">
+              Esgotado no momento
+            </p>
+          ) : (
           <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex w-fit items-center gap-5 rounded-full border border-cardBorder bg-white px-5 py-3">
               <button
@@ -171,7 +176,7 @@ export default function Detalhes() {
               <span className="w-6 text-center font-medium">{count}</span>
               <button
                 aria-label="Aumentar quantidade"
-                onClick={() => setCount(count + 1)}
+                onClick={() => setCount(produto.estoque != null ? Math.min(produto.estoque, count + 1) : count + 1)}
                 className="text-primary/60 transition-colors hover:text-terracotta"
               >
                 <FontAwesomeIcon icon={faPlus} />
@@ -192,6 +197,7 @@ export default function Detalhes() {
               {added ? "Adicionado" : "Adicionar ao carrinho"}
             </button>
           </div>
+          )}
 
           {added && (
             <Link href="/carrinho" className="mt-3 inline-block text-sm font-medium text-terracotta underline">

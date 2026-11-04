@@ -154,6 +154,7 @@ export default function AdminProdutos() {
                 <th className="px-5 py-3 font-medium">Produto</th>
                 <th className="px-3 py-3 font-medium">Categoria</th>
                 <th className="px-3 py-3 font-medium">Preço</th>
+                <th className="px-3 py-3 font-medium">Estoque</th>
                 <th className="px-3 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 text-right font-medium">Ações</th>
               </tr>
@@ -180,6 +181,19 @@ export default function AdminProdutos() {
                     {nomeDaCategoria(p.categoria) || <span className="text-terracotta">Sem categoria</span>}
                   </td>
                   <td className="px-3 py-3 font-display text-lg font-semibold text-terracotta">{formatBRL(p.valor)}</td>
+                  <td className="px-3 py-3 text-sm">
+                    {p.estoque == null ? (
+                      <span className="text-primary/40">Sem controle</span>
+                    ) : p.estoque === 0 ? (
+                      <span className="rounded-full bg-terracotta/15 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-terracotta">Esgotado</span>
+                    ) : p.estoque <= (p.estoque_minimo ?? 0) ? (
+                      <span className="rounded-full bg-gold/25 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+                        {p.estoque} · repor
+                      </span>
+                    ) : (
+                      <span className="text-primary/70">{p.estoque}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-3">
                     <button
                       onClick={() => alternarAtivo(p)}

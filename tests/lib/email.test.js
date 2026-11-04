@@ -10,6 +10,7 @@ import {
   enviarEmailAtualizacaoStatus,
   enviarEmailPedidoRecebido,
   enviarEmailNovoPedidoParaLoja,
+  enviarEmailEstoqueBaixo,
   modalidadeDoPedido,
   textosDoStatus,
 } from "../../src/lib/email";
@@ -136,6 +137,31 @@ describe("e-mails de compra por modalidade", () => {
       await enviarEmailNovoPedidoParaLoja("abcdef12-0000", { pago: false });
       expect(enviados[1].subject).toMatch(/aguardando pagamento/);
       expect(enviados[0].subject).toMatch(/Novo pedido pago/);
+    });
+  });
+
+  describe("aviso de estoque baixo", () => {
+    afterEach(() => { delete process.env.EMAIL_AVISO_LOJA; });
+    const produtos = [
+      { produto: "Vinho <b>Tinto</b>", estoque: 2, estoque_minimo: 5 },
+      { produto: "Cerveja IPA", estoque: 0, estoque_minimo: 3 },
+    ];
+
+    it("não envia sem EMAIL_AVISO_LOJA nem sem produtos", async () => {
+      await enviarEmailEstoqueBaixo(produtos);
+      process.env.EMAIL_AVISO_LOJA = "dono@x.com";
+      await enviarEmailEstoqueBaixo([]);
+      expect(enviados).toHaveLength(0);
+    });
+
+    it("lista os produtos, marca esgotado e escapa o nome", async () => {
+      process.env.EMAIL_AVISO_LOJA = "dono@x.com";
+      await enviarEmailEstoqueBaixo(produtos);
+      expect(enviados).toHaveLength(1);
+      expect(enviados[0].subject).toMatch(/2 produtos para repor/);
+      expect(enviados[0].html).toContain("Esgotado");
+      expect(enviados[0].html).toContain("restam <strong>2</strong>");
+      expect(enviados[0].html).not.toContain("<b>Tinto</b>");
     });
   });
 });

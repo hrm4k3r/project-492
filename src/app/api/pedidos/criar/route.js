@@ -53,13 +53,28 @@ export async function POST(request) {
 
     const { data: produtos, error: produtosError } = await db
       .from("produtos")
-      .select("id, produto, valor")
+      .select("id, produto, valor, estoque")
       .in("id", [...quantidades.keys()])
       .eq("ativo", true);
 
     if (produtosError || !produtos || produtos.length !== quantidades.size) {
       return Response.json(
         { error: "Algum produto do carrinho não está mais disponível." },
+        { status: 400 }
+      );
+    }
+
+    // estoque NULL = produto sem controle de estoque. O estoque só baixa quando o pagamento é
+    // confirmado; aqui só se recusa quem pede mais do que existe agora.
+    const semEstoque = produtos.find((p) => p.estoque != null && quantidades.get(p.id) > p.estoque);
+    if (semEstoque) {
+      const restam = Number(semEstoque.estoque);
+      return Response.json(
+        {
+          error: restam > 0
+            ? `Só restam ${restam} unidade${restam > 1 ? "s" : ""} de "${semEstoque.produto}". Ajuste a quantidade no carrinho.`
+            : `"${semEstoque.produto}" está esgotado. Remova do carrinho para continuar.`,
+        },
         { status: 400 }
       );
     }

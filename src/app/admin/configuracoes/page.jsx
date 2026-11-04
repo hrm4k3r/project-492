@@ -14,7 +14,12 @@ function ConexaoBling() {
   const [status, setStatus] = useState(null);
 
   useEffect(() => {
-    fetch("/api/bling/status")
+    supabase.auth.getSession()
+      .then(({ data: { session } }) =>
+        fetch("/api/bling/status", {
+          headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+        })
+      )
       .then((r) => r.json())
       .then(setStatus)
       .catch(() => setStatus({ conectado: false }));

@@ -30,6 +30,9 @@ create table if not exists produtos (
   ncm text,                             -- 8 dígitos, ex.: 22030000 para cervejas
   unidade text not null default 'UN',   -- UN, KG, CX, DZ...
   cfop text,                            -- opcional; vazio usa 5102 (mesmo estado) ou 6102
+  -- Estoque: NULL = sem controle. Ao chegar em estoque_minimo (ou menos) o lojista é avisado.
+  estoque integer check (estoque is null or estoque >= 0),
+  estoque_minimo integer not null default 0 check (estoque_minimo >= 0),
   created_at timestamptz not null default now()
 );
 
@@ -298,6 +301,35 @@ create policy "Admin gerencia todos os itens de pedido"
   on order_items for all using (is_admin()) with check (is_admin());
 
 -- Dados do pagamento (payment_id etc.) são gravados só pelo servidor (service_role).
+
+-- Dá baixa no estoque dos itens de um pedido pago e devolve os produtos que ficaram
+-- no mínimo ou abaixo (para o aviso de reposição). Só o servidor (service_role) executa.
+create or replace function baixar_estoque_pedido(p_order_id uuid)
+returns table (produto_id uuid, produto text, estoque integer, estoque_minimo integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+#variable_conflict use_column
+begin
+  return query
+  with baixa as (
+    update produtos p
+       set estoque = greatest(0, p.estoque - i.quantidade)
+      from order_items i
+     where i.order_id = p_order_id
+       and i.produto_id = p.id
+       and p.estoque is not null
+    returning p.id, p.produto, p.estoque, p.estoque_minimo
+  )
+  select b.id, b.produto, b.estoque, b.estoque_minimo
+    from baixa b
+   where b.estoque <= b.estoque_minimo;
+end;
+$$;
+
+revoke execute on function baixar_estoque_pedido(uuid) from public, anon, authenticated;
+grant execute on function baixar_estoque_pedido(uuid) to service_role;
 
 -- ============================================================
 -- CATEGORIAS DO CATÁLOGO (gerenciadas em Admin > Categorias)

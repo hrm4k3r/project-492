@@ -46,6 +46,8 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
     altura_cm: initialData?.altura_cm ?? 10,
     largura_cm: initialData?.largura_cm ?? 15,
     comprimento_cm: initialData?.comprimento_cm ?? 15,
+    estoque: initialData?.estoque ?? "",
+    estoque_minimo: initialData?.estoque_minimo ?? 0,
   });
   const categorias = useCategorias();
   const [uploading, setUploading] = useState(false);
@@ -111,6 +113,9 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
       altura_cm: Number(form.altura_cm),
       largura_cm: Number(form.largura_cm),
       comprimento_cm: Number(form.comprimento_cm),
+      // Vazio = sem controle de estoque (o produto nunca esgota).
+      estoque: String(form.estoque).trim() === "" ? null : Math.max(0, Math.floor(Number(form.estoque))),
+      estoque_minimo: Math.max(0, Math.floor(Number(form.estoque_minimo) || 0)),
     });
     setSaving(false);
   };
@@ -169,6 +174,29 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
               <datalist id="sugestoes-estilo">
                 {SUGESTOES_ESTILO.map((s) => <option key={s} value={s} />)}
               </datalist>
+            </Campo>
+          </div>
+        </Secao>
+
+        <Secao
+          titulo="Estoque"
+          descricao="Opcional. A cada venda paga o estoque baixa sozinho, e você recebe um e-mail quando chegar na quantidade mínima."
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Campo label="Estoque atual" htmlFor="estoque">
+              <input
+                id="estoque" type="number" step="1" min="0" name="estoque"
+                value={form.estoque} onChange={handleChange}
+                placeholder="Vazio = sem controle"
+                className={inputClass}
+              />
+            </Campo>
+            <Campo label="Avisar quando restar (quantidade mínima)" htmlFor="estoque_minimo">
+              <input
+                id="estoque_minimo" type="number" step="1" min="0" name="estoque_minimo"
+                value={form.estoque_minimo} onChange={handleChange}
+                className={inputClass}
+              />
             </Campo>
           </div>
         </Secao>

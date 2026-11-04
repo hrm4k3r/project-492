@@ -15,8 +15,11 @@ export function ProdutoCard({ produto }) {
   const [added, setAdded] = useState(false);
   const { id, produto: titulo, shortdescription, valor, imagens, marca, pais, estilo } = produto;
   const origem = [marca, pais].filter(Boolean).join(" · ");
+  // estoque NULL = sem controle de estoque (nunca esgota)
+  const esgotado = produto.estoque != null && produto.estoque <= 0;
 
   const handleAdd = () => {
+    if (esgotado) return;
     addItem(produto);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -31,9 +34,13 @@ export function ProdutoCard({ produto }) {
           alt={titulo}
           fill
           sizes="(min-width: 768px) 25vw, 50vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className={`object-cover transition-transform duration-500 group-hover:scale-105 ${esgotado ? "opacity-60" : ""}`}
         />
-        {isPremiado(shortdescription) ? (
+        {esgotado ? (
+          <span className="absolute left-3 top-3 rounded-full bg-terracotta px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-cream">
+            Esgotado
+          </span>
+        ) : isPremiado(shortdescription) ? (
           <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-gold">
             <FontAwesomeIcon icon={faAward} />
             Premiado
@@ -60,12 +67,13 @@ export function ProdutoCard({ produto }) {
           <span className="font-display text-xl text-terracotta">{formatBRL(valor)}</span>
           <button
             onClick={handleAdd}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-cream transition-all duration-300 ${
+            disabled={esgotado}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-cream transition-all duration-300 disabled:cursor-not-allowed disabled:bg-primary/30 ${
               added ? "bg-olive" : "bg-primary hover:bg-terracotta"
             }`}
           >
             <FontAwesomeIcon icon={added ? faCheck : faCartPlus} />
-            {added ? "Adicionado" : "Adicionar"}
+            {esgotado ? "Esgotado" : added ? "Adicionado" : "Adicionar"}
           </button>
         </div>
       </div>

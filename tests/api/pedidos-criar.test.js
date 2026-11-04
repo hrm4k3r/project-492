@@ -96,6 +96,30 @@ describe("POST /api/pedidos/criar", () => {
     expect(h.db.tabelas.orders).toHaveLength(0);
   });
 
+  describe("estoque", () => {
+    it("recusa quantidade acima do estoque e não cria o pedido", async () => {
+      h.db.tabelas.produtos[0].estoque = 1;
+      const r = await chamar(corpo({ itens: [{ id: "p1", quantidade: 2 }] }));
+      expect(r.status).toBe(400);
+      expect(r.json.error).toMatch(/Só restam 1 unidade/);
+      expect(h.db.tabelas.orders).toHaveLength(0);
+    });
+
+    it("recusa produto esgotado", async () => {
+      h.db.tabelas.produtos[0].estoque = 0;
+      const r = await chamar(corpo({ itens: [{ id: "p1", quantidade: 1 }] }));
+      expect(r.status).toBe(400);
+      expect(r.json.error).toMatch(/esgotado/);
+    });
+
+    it("aceita até o estoque disponível e produto sem controle (estoque nulo)", async () => {
+      h.db.tabelas.produtos[0].estoque = 2;
+      expect((await chamar(corpo({ itens: [{ id: "p1", quantidade: 2 }] }))).status).toBe(200);
+      h.db.tabelas.produtos[1].estoque = null;
+      expect((await chamar(corpo({ itens: [{ id: "p2", quantidade: 50 }] }))).status).toBe(200);
+    });
+  });
+
   it("recusa quantidade inválida e carrinho vazio", async () => {
     for (const quantidade of [0, -1, 1.5, "abc"]) {
       expect((await chamar(corpo({ itens: [{ id: "p1", quantidade }] }))).status).toBe(400);

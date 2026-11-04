@@ -16,7 +16,12 @@ function ConexaoMelhorEnvio() {
   const [status, setStatus] = useState(null);
 
   useEffect(() => {
-    fetch("/api/melhorenvio/status")
+    supabase.auth.getSession()
+      .then(({ data: { session } }) =>
+        fetch("/api/melhorenvio/status", {
+          headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+        })
+      )
       .then((r) => r.json())
       .then(setStatus)
       .catch(() => setStatus({ conectado: false }));
