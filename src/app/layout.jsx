@@ -34,10 +34,33 @@ const script = localFont({
   display: 'swap',
 })
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.curadoriadamesa.com.br'
+const TITULO = 'Curadoria da Mesa | Seleção de Sabores'
+const DESCRICAO =
+  'Cervejas artesanais nacionais e importadas, vinhos, queijos e cafés selecionados com cuidado, com sugestões de harmonização. Entregamos para todo o Brasil.'
+
+// Imagem de prévia do link (WhatsApp, Instagram etc.): public/og-image.png, 1200x630.
+const IMAGEM_PREVIA = { url: '/og-image.png', width: 1200, height: 630, alt: TITULO }
+
 export const metadata = {
-  title: 'Curadoria da Mesa | Seleção de Sabores',
-  description:
-    'Cervejas artesanais nacionais e importadas, vinhos, queijos e cafés selecionados com cuidado, com sugestões de harmonização. Entregamos para todo o Brasil.',
+  metadataBase: new URL(SITE),
+  title: TITULO,
+  description: DESCRICAO,
+  openGraph: {
+    title: TITULO,
+    description: DESCRICAO,
+    url: SITE,
+    siteName: 'Curadoria da Mesa',
+    locale: 'pt_BR',
+    type: 'website',
+    images: [IMAGEM_PREVIA],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITULO,
+    description: DESCRICAO,
+    images: [IMAGEM_PREVIA.url],
+  },
 }
 
 export default function RootLayout({ children }) {
