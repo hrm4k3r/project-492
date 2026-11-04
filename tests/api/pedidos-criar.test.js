@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { criarBanco, requisicao, resposta } from "../helpers/fakeSupabase";
 
-const h = vi.hoisted(() => ({ db: null, cotarFrete: null, emailRecebido: null }));
+const h = vi.hoisted(() => ({ db: null, cotarFrete: null, emailRecebido: null, avisoLoja: null }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 vi.mock("../../src/lib/frete", () => ({ cotarFrete: (...a) => h.cotarFrete(...a) }));
-vi.mock("../../src/lib/email", () => ({ enviarEmailPedidoRecebido: (...a) => h.emailRecebido(...a) }));
+vi.mock("../../src/lib/email", () => ({
+  enviarEmailPedidoRecebido: (...a) => h.emailRecebido(...a),
+  enviarEmailNovoPedidoParaLoja: (...a) => h.avisoLoja(...a),
+}));
 
 import { POST } from "../../src/app/api/pedidos/criar/route";
 
@@ -52,6 +55,7 @@ const chamar = async (body, token = "tok-u1") =>
 beforeEach(() => {
   h.db = novoBanco();
   h.emailRecebido = vi.fn(async () => {});
+  h.avisoLoja = vi.fn(async () => {});
   h.cotarFrete = vi.fn(async () => ({ opcoes: [{ servico: "PAC", preco: 30 }, { servico: "SEDEX", preco: 55 }] }));
 });
 
@@ -65,6 +69,7 @@ describe("POST /api/pedidos/criar", () => {
     const r = await chamar(corpo());
     expect(r.status).toBe(200);
     expect(h.emailRecebido).toHaveBeenCalledWith(r.json.orderId);
+    expect(h.avisoLoja).toHaveBeenCalledWith(r.json.orderId, { pago: false });
 
     h.emailRecebido = vi.fn(async () => { throw new Error("resend fora do ar"); });
     expect((await chamar(corpo())).status).toBe(200);

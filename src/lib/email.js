@@ -382,7 +382,7 @@ export async function enviarEmailPedidoRecebido(orderId) {
   }
 }
 
-function templateAvisoLoja(order) {
+function templateAvisoLoja(order, pago = true) {
   const numeroShort = `#${order.id.slice(0, 8)}`;
   const cliente = order.profiles?.full_name || "Cliente";
   const modalidade = modalidadeDoPedido(order);
@@ -400,16 +400,16 @@ function templateAvisoLoja(order) {
 
   return htmlBase({
     nome: "equipe",
-    titulo: `Novo pedido pago ${numeroShort}`,
-    corTitulo: "#4A7C59",
+    titulo: pago ? `Novo pedido pago ${numeroShort}` : `Novo pedido ${numeroShort} (aguardando pagamento)`,
+    corTitulo: pago ? "#4A7C59" : "#C9A36A",
     conteudo,
     rodape: `Pedido ${numeroShort} · Curadoria da Mesa`,
   });
 }
 
-// Aviso interno de novo pedido pago. Só envia se EMAIL_AVISO_LOJA estiver definido
-// (um ou mais e-mails separados por vírgula).
-export async function enviarEmailNovoPedidoParaLoja(orderId) {
+// Aviso interno de novo pedido: na criação ({ pago: false }) e quando o pagamento é confirmado.
+// Só envia se EMAIL_AVISO_LOJA estiver definido (um ou mais e-mails separados por vírgula).
+export async function enviarEmailNovoPedidoParaLoja(orderId, { pago = true } = {}) {
   const destinos = (process.env.EMAIL_AVISO_LOJA ?? "")
     .split(",")
     .map((e) => e.trim())
@@ -423,8 +423,8 @@ export async function enviarEmailNovoPedidoParaLoja(orderId) {
     const { order } = dados;
     await enviar({
       to: destinos,
-      subject: `Novo pedido pago — #${order.id.slice(0, 8)} (${formatBRL(order.total)})`,
-      html: templateAvisoLoja(order),
+      subject: `${pago ? "Novo pedido pago" : "Novo pedido (aguardando pagamento)"} — #${order.id.slice(0, 8)} (${formatBRL(order.total)})`,
+      html: templateAvisoLoja(order, pago),
     });
   } catch (err) {
     console.error("Erro ao enviar aviso de novo pedido para a loja:", err);

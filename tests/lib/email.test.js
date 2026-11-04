@@ -132,6 +132,10 @@ describe("e-mails de compra por modalidade", () => {
       expect(enviados).toHaveLength(1);
       expect(enviados[0].to).toEqual(["loja@x.com", "dono@x.com"]);
       expect(enviados[0].subject).toMatch(/Novo pedido pago/);
+
+      await enviarEmailNovoPedidoParaLoja("abcdef12-0000", { pago: false });
+      expect(enviados[1].subject).toMatch(/aguardando pagamento/);
+      expect(enviados[0].subject).toMatch(/Novo pedido pago/);
     });
   });
 });

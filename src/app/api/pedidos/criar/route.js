@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cotarFrete } from "../../../../lib/frete";
 import { documentoValido, somenteDigitos } from "../../../../lib/documento";
 import { MOTOBOY_PADRAO, MOTOBOY_SERVICO, mesmaCidade } from "../../../../lib/motoboy";
-import { enviarEmailPedidoRecebido } from "../../../../lib/email";
+import { enviarEmailPedidoRecebido, enviarEmailNovoPedidoParaLoja } from "../../../../lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -206,7 +206,11 @@ export async function POST(request) {
 
     // Aviso "recebemos o seu pedido". Espera o envio (na Vercel, trabalho solto após a resposta
     // pode ser encerrado); falha de e-mail só é registrada e não derruba o pedido.
-    await Promise.resolve(enviarEmailPedidoRecebido(order.id)).catch(console.error);
+    // O lojista também é avisado na criação, para acompanhar pedidos que entram antes do pagamento.
+    await Promise.all([
+      Promise.resolve(enviarEmailPedidoRecebido(order.id)).catch(console.error),
+      Promise.resolve(enviarEmailNovoPedidoParaLoja(order.id, { pago: false })).catch(console.error),
+    ]);
 
     return Response.json({ orderId: order.id });
   } catch (err) {
