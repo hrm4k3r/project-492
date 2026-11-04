@@ -87,7 +87,7 @@ function supabaseAdmin() {
   );
 }
 
-async function buscarDadosPedido(orderId) {
+export async function buscarDadosPedido(orderId) {
   const db = supabaseAdmin();
 
   const { data: order } = await db

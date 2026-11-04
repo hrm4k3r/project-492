@@ -3,6 +3,7 @@ import { cotarFrete } from "../../../../lib/frete";
 import { documentoValido, somenteDigitos } from "../../../../lib/documento";
 import { MOTOBOY_PADRAO, MOTOBOY_SERVICO, mesmaCidade } from "../../../../lib/motoboy";
 import { enviarEmailPedidoRecebido, enviarEmailNovoPedidoParaLoja } from "../../../../lib/email";
+import { enviarTelegramNovoPedido } from "../../../../lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -210,6 +211,7 @@ export async function POST(request) {
     await Promise.all([
       Promise.resolve(enviarEmailPedidoRecebido(order.id)).catch(console.error),
       Promise.resolve(enviarEmailNovoPedidoParaLoja(order.id, { pago: false })).catch(console.error),
+      Promise.resolve(enviarTelegramNovoPedido(order.id, { pago: false })).catch(console.error),
     ]);
 
     return Response.json({ orderId: order.id });

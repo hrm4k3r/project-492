@@ -9,6 +9,7 @@ vi.mock("../../src/lib/email", () => ({
   enviarEmailNovoPedidoParaLoja: async (id) => { h.avisosLoja.push(id); },
 }));
 vi.mock("../../src/lib/bling", () => ({ emitirNFe: async (id) => { h.nfes.push(id); } }));
+vi.mock("../../src/lib/telegram", () => ({ enviarTelegramNovoPedido: async () => {} }));
 
 import { PATCH } from "../../src/app/api/pedidos/[id]/status/route";
 

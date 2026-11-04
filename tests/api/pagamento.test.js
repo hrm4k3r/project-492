@@ -21,6 +21,7 @@ vi.mock("../../src/lib/email", () => ({
   enviarEmailNovoPedidoParaLoja: vi.fn(async () => {}),
 }));
 vi.mock("../../src/lib/bling", () => ({ emitirNFe: (...a) => h.emitirNFe(...a) }));
+vi.mock("../../src/lib/telegram", () => ({ enviarTelegramNovoPedido: vi.fn(async () => {}) }));
 
 import { POST as verificar } from "../../src/app/api/pagamento/verificar/route";
 import { POST as webhook } from "../../src/app/api/pagamento/webhook/route";

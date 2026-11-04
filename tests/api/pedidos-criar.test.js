@@ -9,6 +9,8 @@ vi.mock("../../src/lib/email", () => ({
   enviarEmailNovoPedidoParaLoja: (...a) => h.avisoLoja(...a),
 }));
 
+vi.mock("../../src/lib/telegram", () => ({ enviarTelegramNovoPedido: vi.fn(async () => {}) }));
+
 import { POST } from "../../src/app/api/pedidos/criar/route";
 
 const CPF = "529.982.247-25";
