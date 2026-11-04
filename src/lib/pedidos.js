@@ -16,10 +16,14 @@ export async function confirmarPagamento(db, orderId) {
   if (error) throw error;
   if (!data?.length) return false;
 
-  enviarEmailConfirmacaoPedido(orderId).catch(console.error);
-  enviarEmailNovoPedidoParaLoja(orderId).catch(console.error);
-  emitirNFe(orderId).catch((err) =>
-    console.error(`NF-e pedido ${orderId}:`, err.message)
-  );
+  // Espera terminar antes de responder: na Vercel, trabalho solto após a resposta pode ser
+  // encerrado antes de o e-mail sair. Falhas são só registradas e nunca desfazem o pagamento.
+  await Promise.all([
+    Promise.resolve(enviarEmailConfirmacaoPedido(orderId)).catch(console.error),
+    Promise.resolve(enviarEmailNovoPedidoParaLoja(orderId)).catch(console.error),
+    Promise.resolve(emitirNFe(orderId)).catch((err) =>
+      console.error(`NF-e pedido ${orderId}:`, err.message)
+    ),
+  ]);
   return true;
 }

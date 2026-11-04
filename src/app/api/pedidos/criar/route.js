@@ -204,8 +204,9 @@ export async function POST(request) {
       return Response.json({ error: "Não foi possível salvar os itens do pedido." }, { status: 500 });
     }
 
-    // Aviso "recebemos o seu pedido" sem bloquear a resposta (falha de e-mail não derruba o pedido).
-    enviarEmailPedidoRecebido(order.id).catch(console.error);
+    // Aviso "recebemos o seu pedido". Espera o envio (na Vercel, trabalho solto após a resposta
+    // pode ser encerrado); falha de e-mail só é registrada e não derruba o pedido.
+    await Promise.resolve(enviarEmailPedidoRecebido(order.id)).catch(console.error);
 
     return Response.json({ orderId: order.id });
   } catch (err) {

@@ -65,8 +65,8 @@ export async function PATCH(request, { params }) {
     return Response.json({ error: "Não foi possível atualizar o pedido." }, { status: 500 });
   }
 
-  // Dispara email sem bloquear a resposta
-  enviarEmailAtualizacaoStatus(id, status).catch(console.error);
+  // Espera o envio (na Vercel, trabalho solto após a resposta pode ser encerrado)
+  await Promise.resolve(enviarEmailAtualizacaoStatus(id, status)).catch(console.error);
 
   return Response.json({ ok: true });
 }
