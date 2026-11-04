@@ -2,7 +2,7 @@ import ShellPublico from './components/ShellPublico'
 import '../app/styles/globals.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { config } from '@fortawesome/fontawesome-svg-core'
-import { Cormorant_Garamond, Jost, Pinyon_Script } from 'next/font/google'
+import localFont from 'next/font/local'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 
@@ -11,14 +11,28 @@ config.autoAddCss = false
 const SCRIPT_MAIORIDADE =
   '(function(){try{var t=Number(localStorage.getItem("maioridade-confirmada"));if(t&&Date.now()-t<2592000000)document.documentElement.setAttribute("data-maior","1")}catch(e){}})();'
 
-const display = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+// Fontes (Google Fonts, subconjunto latino) guardadas no projeto em src/app/fonts: o build não
+// depende mais de baixar nada do Google, que às vezes estoura o tempo e derruba o deploy.
+const display = localFont({
+  src: [
+    { path: './fonts/CormorantGaramond-normal.woff2', weight: '300 700', style: 'normal' },
+    { path: './fonts/CormorantGaramond-italic.woff2', weight: '300 700', style: 'italic' },
+  ],
   variable: '--font-display',
+  display: 'swap',
 })
-const sans = Jost({ subsets: ['latin'], weight: ['300', '400', '500', '600'], variable: '--font-sans' })
-const script = Pinyon_Script({ subsets: ['latin'], weight: '400', variable: '--font-script' })
+const sans = localFont({
+  src: './fonts/Jost-normal.woff2',
+  weight: '300 600',
+  variable: '--font-sans',
+  display: 'swap',
+})
+const script = localFont({
+  src: './fonts/PinyonScript-normal.woff2',
+  weight: '400',
+  variable: '--font-script',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'Curadoria da Mesa | Seleção de Sabores',

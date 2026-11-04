@@ -83,6 +83,7 @@ supabase/           # SQL schema files (run setup_completo.sql for a fresh datab
 Run `supabase/setup_completo.sql` to initialize a fresh project: ele já inclui tudo (colunas fiscais, pagamento, categorias, RLS e correções de segurança). Em bancos existentes rode apenas os `schema_*.sql` incrementais que ainda faltarem. Ao criar uma mudança de banco nova, atualize o `setup_completo.sql` junto. Individual schema files in `supabase/` contain incremental changes.
 
 ### Styling
+nFontes (Cormorant Garamond, Jost, Pinyon Script) ficam em `src/app/fonts` e são carregadas com `next/font/local` no `layout.jsx`: o build não baixa nada do Google Fonts (já derrubou um deploy por timeout).
 
 Tailwind CSS with a custom brand palette defined in `tailwind.config.js`:
 - `brand` (#5A2A14) — header/footer brown
