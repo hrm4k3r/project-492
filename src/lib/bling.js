@@ -37,6 +37,7 @@ async function trocarCodigoPorToken(code) {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
+      "enable-jwt": "1",
       Authorization: basicAuth(),
     },
     body: new URLSearchParams({
@@ -58,6 +59,7 @@ async function renovarToken(refreshToken) {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
+      "enable-jwt": "1",
       Authorization: basicAuth(),
     },
     body: new URLSearchParams({
@@ -166,6 +168,7 @@ async function chamarBling(token, caminho, { method = "GET", body } = {}) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        "enable-jwt": "1",
         Authorization: `Bearer ${token}`,
       },
       body: body ? JSON.stringify(body) : undefined,
