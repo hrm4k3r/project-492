@@ -332,9 +332,18 @@ async function emitir(supabase, orderId) {
   return { id: nfeId, situacao };
 }
 
-// Formas de pagamento cadastradas na conta Bling (para descobrir o id do Pix e afins).
-export async function listarFormasPagamento() {
+// Diagnóstico de permissões: tenta uma leitura em cada área e devolve o código HTTP de cada uma.
+export async function diagnosticarPermissoes() {
   const accessToken = await obterAccessTokenValido();
-  const data = await chamarBling(accessToken, "/formas-pagamentos?limite=100");
-  return (data?.data ?? []).map((f) => ({ id: f.id, descricao: f.descricao, situacao: f.situacao }));
+  const testes = ["/nfe?limite=1", "/contatos?limite=1", "/produtos?limite=1"];
+  const resultado = [];
+  for (const caminho of testes) {
+    try {
+      await chamarBling(accessToken, caminho);
+      resultado.push({ caminho: caminho.split("?")[0], ok: true });
+    } catch (err) {
+      resultado.push({ caminho: caminho.split("?")[0], ok: false, erro: err.message });
+    }
+  }
+  return resultado;
 }

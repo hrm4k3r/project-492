@@ -16,11 +16,11 @@ function ConexaoBling() {
 
   async function verFormas() {
     const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch("/api/bling/formas-pagamento", {
+    const res = await fetch("/api/bling/diagnostico", {
       headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
     });
     const data = await res.json().catch(() => ({}));
-    setFormas(res.ok ? data.formas : [{ id: "erro", descricao: data.error ?? "Falha ao consultar" }]);
+    setFormas(res.ok ? data.testes : [{ caminho: "erro", ok: false, erro: data.error ?? "Falha ao consultar" }]);
   }
 
   useEffect(() => {
@@ -90,15 +90,14 @@ function ConexaoBling() {
         </button>
         {status?.conectado && (
           <button type="button" onClick={verFormas} className="text-xs text-primary/60 underline">
-            Ver ids das formas de pagamento
+            Testar permissões do Bling
           </button>
         )}
       </div>
       {formas && (
         <ul className="w-full text-sm text-primary/80">
-          {formas.length === 0 && <li>Nenhuma forma de pagamento encontrada.</li>}
           {formas.map((f) => (
-            <li key={f.id}><strong>{f.id}</strong> — {f.descricao}</li>
+            <li key={f.caminho}><strong>{f.caminho}</strong> — {f.ok ? "liberado" : f.erro}</li>
           ))}
         </ul>
       )}
