@@ -176,7 +176,12 @@ async function chamarBling(token, caminho, { method = "GET", body } = {}) {
     throw erro;
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(mensagemDeErro(data, res.status));
+  if (!res.ok) {
+    const detalhe = res.status === 401 || res.status === 403
+      ? ` [${method} ${caminho.split("?")[0]}, HTTP ${res.status}${data?.error?.type ? `, ${data.error.type}` : ""}]`
+      : "";
+    throw new Error(mensagemDeErro(data, res.status) + detalhe);
+  }
   return data;
 }
 
