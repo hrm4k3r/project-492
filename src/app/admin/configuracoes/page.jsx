@@ -12,6 +12,16 @@ import { cardClass, inputClass, labelClass } from "../ui";
 function ConexaoBling() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState(null);
+  const [formas, setFormas] = useState(null);
+
+  async function verFormas() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch("/api/bling/formas-pagamento", {
+      headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    setFormas(res.ok ? data.formas : [{ id: "erro", descricao: data.error ?? "Falha ao consultar" }]);
+  }
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -68,10 +78,25 @@ function ConexaoBling() {
           </p>
         )}
       </div>
-      <button type="button" onClick={conectar} className="btn-outline !py-2.5 text-xs">
-        <FontAwesomeIcon icon={faLink} />
-        {status?.conectado ? "Reconectar" : "Conectar Bling"}
-      </button>
+      <div className="flex flex-col items-end gap-2">
+        <button type="button" onClick={conectar} className="btn-outline !py-2.5 text-xs">
+          <FontAwesomeIcon icon={faLink} />
+          {status?.conectado ? "Reconectar" : "Conectar Bling"}
+        </button>
+        {status?.conectado && (
+          <button type="button" onClick={verFormas} className="text-xs text-primary/60 underline">
+            Ver ids das formas de pagamento
+          </button>
+        )}
+      </div>
+      {formas && (
+        <ul className="w-full text-sm text-primary/80">
+          {formas.length === 0 && <li>Nenhuma forma de pagamento encontrada.</li>}
+          {formas.map((f) => (
+            <li key={f.id}><strong>{f.id}</strong> — {f.descricao}</li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

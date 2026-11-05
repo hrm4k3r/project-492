@@ -325,3 +325,10 @@ async function emitir(supabase, orderId) {
   await supabase.from("orders").update({ nfe_status: situacao, nfe_erro: null }).eq("id", orderId);
   return { id: nfeId, situacao };
 }
+
+// Formas de pagamento cadastradas na conta Bling (para descobrir o id do Pix e afins).
+export async function listarFormasPagamento() {
+  const accessToken = await obterAccessTokenValido();
+  const data = await chamarBling(accessToken, "/formas-pagamentos?limite=100");
+  return (data?.data ?? []).map((f) => ({ id: f.id, descricao: f.descricao, situacao: f.situacao }));
+}
