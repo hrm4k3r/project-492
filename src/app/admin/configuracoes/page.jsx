@@ -65,6 +65,11 @@ function ConexaoBling() {
             Ainda não conectado. Conecte para emissão automática de NF-e após o pagamento.
           </p>
         )}
+        {status?.conectado && (
+          <p className="mt-1 break-all text-xs text-primary/50">
+            Permissões do token: {status.escopos ?? "não informadas (reconecte)"}
+          </p>
+        )}
         {resultado === "erro" && (
           <p className="mt-1 flex items-center gap-2 text-sm text-terracotta">
             <FontAwesomeIcon icon={faTriangleExclamation} />

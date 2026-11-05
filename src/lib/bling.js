@@ -81,6 +81,7 @@ async function salvarTokens(tokenResponse) {
       access_token: tokenResponse.access_token,
       refresh_token: tokenResponse.refresh_token,
       expires_at: expiresAt,
+      scope: tokenResponse.scope ?? null,
     },
     updated_at: new Date().toISOString(),
   });
@@ -99,7 +100,7 @@ export async function statusConexao() {
     .eq("id", INTEGRACAO_ID)
     .maybeSingle();
   if (!data) return { conectado: false };
-  return { conectado: true, conectadoEm: data.updated_at };
+  return { conectado: true, conectadoEm: data.updated_at, escopos: data.dados?.scope ?? null };
 }
 
 async function obterAccessTokenValido() {
