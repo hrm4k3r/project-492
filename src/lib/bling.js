@@ -38,6 +38,7 @@ async function trocarCodigoPorToken(code) {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
       "enable-jwt": "1",
+      "User-Agent": "CuradoriaDaMesa/1.0 (+https://www.curadoriadamesa.com.br)",
       Authorization: basicAuth(),
     },
     body: new URLSearchParams({
@@ -60,6 +61,7 @@ async function renovarToken(refreshToken) {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
       "enable-jwt": "1",
+      "User-Agent": "CuradoriaDaMesa/1.0 (+https://www.curadoriadamesa.com.br)",
       Authorization: basicAuth(),
     },
     body: new URLSearchParams({
@@ -151,6 +153,14 @@ async function formaPagamentoDoPedido(paymentId) {
   return idFormaPagamento(variavel, tipo);
 }
 
+// Cabeçalhos que ajudam o suporte do Bling a achar a chamada (ou a camada que a barrou).
+function infoDaResposta(res) {
+  const partes = ["server", "cf-ray", "x-request-id"]
+    .map((h) => (res.headers?.get?.(h) ? `${h}=${res.headers.get(h)}` : null))
+    .filter(Boolean);
+  return partes.length ? `, ${partes.join(", ")}` : "";
+}
+
 function mensagemDeErro(data, status) {
   const mensagem = data?.error?.message;
   const campos = data?.error?.fields?.map((f) => f.msg).filter(Boolean).join("; ");
@@ -169,6 +179,7 @@ async function chamarBling(token, caminho, { method = "GET", body } = {}) {
         "Content-Type": "application/json",
         Accept: "application/json",
         "enable-jwt": "1",
+        "User-Agent": "CuradoriaDaMesa/1.0 (+https://www.curadoriadamesa.com.br)",
         Authorization: `Bearer ${token}`,
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -182,7 +193,7 @@ async function chamarBling(token, caminho, { method = "GET", body } = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const detalhe = res.status === 401 || res.status === 403
-      ? ` [${method} ${caminho.split("?")[0]}, HTTP ${res.status}${data?.error?.type ? `, ${data.error.type}` : ""}]`
+      ? ` [${method} ${caminho.split("?")[0]}, HTTP ${res.status}${data?.error?.type ? `, ${data.error.type}` : ""}${infoDaResposta(res)}]`
       : "";
     throw new Error(mensagemDeErro(data, res.status) + detalhe);
   }
