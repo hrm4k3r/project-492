@@ -2,7 +2,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "./mercadopago";
 
+// OAuth (autorizar/token) fica em www; as rotas de dados (nfe, contatos...) ficam em api.
 const BLING_BASE = "https://www.bling.com.br/Api/v3";
+const BLING_API = "https://api.bling.com.br/Api/v3";
 const INTEGRACAO_ID = "bling";
 
 function supabaseAdmin() {
@@ -173,7 +175,7 @@ function mensagemDeErro(data, status) {
 async function chamarBling(token, caminho, { method = "GET", body } = {}) {
   let res;
   try {
-    res = await fetch(`${BLING_BASE}${caminho}`, {
+    res = await fetch(`${BLING_API}${caminho}`, {
       method,
       headers: {
         "Content-Type": "application/json",
