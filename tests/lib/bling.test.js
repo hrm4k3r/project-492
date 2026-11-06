@@ -82,6 +82,17 @@ describe("emitirNFe", () => {
     expect(nota.parcelas[0]).toMatchObject({ valor: 115, formaPagamento: { id: 777 } });
   });
 
+  it("informa o código do produto e distribui o desconto para a parcela bater com o total", async () => {
+    ordem().desconto = 10;
+    ordem().total = 105;
+    await emitirNFe("o1");
+    const nota = chamadas[0].corpo;
+    expect(nota.itens[0].codigo).toBeTruthy();
+    expect(nota.itens[0].quantidade * nota.itens[0].valor).toBeCloseTo(90, 2);
+    expect(nota.parcelas[0].valor).toBe(105);
+    expect(nota.parcelas[0].dataVencimento).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it("não cria uma segunda nota: depois de falha no envio, só reenvia a mesma", async () => {
     rotas["POST /nfe/123/enviar"] = { status: 500, corpo: { error: { message: "Sefaz fora do ar" } } };
     await expect(emitirNFe("o1")).rejects.toThrow("Sefaz fora do ar");

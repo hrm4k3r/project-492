@@ -209,11 +209,38 @@ function montarPayload(order, formaPagamentoBling) {
   const { addresses: address, profiles: profile, order_items: itens } = order;
   const estadoOrigem = process.env.BLING_ESTADO_ORIGEM ?? "SP";
   const docLimpo = profile.documento.replace(/\D/g, "");
+  const arred = (n) => Math.round(n * 100) / 100;
+
+  // O desconto do cupom é distribuído nos itens (proporcional), para o total da nota
+  // bater com o que o cliente pagou. A última linha absorve a diferença de centavos.
+  const desconto = Number(order.desconto ?? 0);
+  const subtotalItens = itens.reduce((t, i) => t + Number(i.preco_unitario) * i.quantidade, 0);
+  let descontoRestante = desconto;
+  const linhas = itens.map((item, idx) => {
+    const bruto = Number(item.preco_unitario) * item.quantidade;
+    const parte =
+      desconto <= 0 || subtotalItens <= 0
+        ? 0
+        : idx === itens.length - 1
+          ? descontoRestante
+          : arred((desconto * bruto) / subtotalItens);
+    descontoRestante = arred(descontoRestante - parte);
+    const total = arred(bruto - parte);
+    return { item, total, valorUnitario: total / item.quantidade };
+  });
+  const totalItens = arred(linhas.reduce((t, l) => t + l.total, 0));
+  const frete = Number(order.frete);
+
+  // Vencimento: hoje (no fuso do Brasil); o Bling recusa data no passado.
+  const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const naturezaId = Number(process.env.BLING_NATUREZA_OPERACAO);
 
   return {
     tipo: 1,
     finalidade: 1,
-    naturezaOperacao: "VENDA DE MERCADORIA AO CONSUMIDOR",
+    // Sem id configurado, o Bling usa a natureza de operação padrão para venda.
+    ...(naturezaId ? { naturezaOperacao: { id: naturezaId } } : {}),
     dataOperacao: new Date(order.created_at).toISOString().replace("T", " ").slice(0, 19),
     contato: {
       nome: profile.full_name || "Cliente",
@@ -230,12 +257,13 @@ function montarPayload(order, formaPagamentoBling) {
         pais: "Brasil",
       },
     },
-    itens: itens.map((item) => {
+    itens: linhas.map(({ item, valorUnitario }) => {
       const cfop = item.produtos?.cfop ?? (address.state === estadoOrigem ? "5102" : "6102");
       return {
+        codigo: String(item.produto_id ?? item.id),
         descricao: item.titulo,
         quantidade: item.quantidade,
-        valor: Number(item.preco_unitario),
+        valor: valorUnitario,
         cfop,
         unidade: item.produtos?.unidade ?? "UN",
         produto: {
@@ -247,14 +275,14 @@ function montarPayload(order, formaPagamentoBling) {
     }),
     parcelas: [
       {
-        dataVencimento: new Date(order.created_at).toISOString().slice(0, 10),
-        valor: Number(order.total),
+        dataVencimento: hoje,
+        valor: arred(totalItens + frete),
         formaPagamento: { id: formaPagamentoBling },
       },
     ],
     transporte: {
       fretePorConta: 1, // 0 = emitente, 1 = destinatário
-      frete: Number(order.frete),
+      frete,
     },
   };
 }
