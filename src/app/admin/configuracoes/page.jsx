@@ -97,7 +97,7 @@ function ConexaoBling() {
       {formas && (
         <ul className="w-full text-sm text-primary/80">
           {formas.map((f) => (
-            <li key={f.caminho}><strong>{f.caminho}</strong> — {f.ok ? "liberado" : f.erro}</li>
+            <li key={f.caminho}><strong>{f.caminho}</strong> — {f.ok ? (f.detalhe ?? "liberado") : f.erro}</li>
           ))}
         </ul>
       )}

@@ -359,5 +359,13 @@ export async function diagnosticarPermissoes() {
       resultado.push({ caminho: caminho.split("?")[0], ok: false, erro: err.message });
     }
   }
+  // IP público do servidor (dinâmico na Vercel): o suporte do Bling costuma pedir para liberar/investigar.
+  try {
+    const r = await fetch("https://api.ipify.org?format=json", { signal: AbortSignal.timeout(5000) });
+    const { ip } = await r.json();
+    resultado.push({ caminho: "IP de saída do servidor", ok: true, detalhe: ip });
+  } catch {
+    resultado.push({ caminho: "IP de saída do servidor", ok: false, erro: "não foi possível obter" });
+  }
   return resultado;
 }
