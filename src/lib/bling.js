@@ -165,7 +165,10 @@ function infoDaResposta(res) {
 
 function mensagemDeErro(data, status) {
   const mensagem = data?.error?.message;
-  const campos = data?.error?.fields?.map((f) => f.msg).filter(Boolean).join("; ");
+  const campos = data?.error?.fields
+    ?.map((f) => (typeof f === "string" ? f : [f.element, f.msg ?? f.message].filter(Boolean).join(": ")))
+    .filter(Boolean)
+    .join("; ");
   if (mensagem && campos) return `${mensagem}: ${campos}`;
   return mensagem ?? (campos || `Bling erro ${status}`);
 }
@@ -300,7 +303,7 @@ export async function emitirNFe(orderId) {
   } catch (err) {
     await supabase
       .from("orders")
-      .update({ nfe_erro: String(err.message ?? err).slice(0, 300) })
+      .update({ nfe_erro: String(err.message ?? err).slice(0, 800) })
       .eq("id", orderId);
     throw err;
   }
