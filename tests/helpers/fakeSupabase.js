@@ -61,7 +61,9 @@ export function criarBanco({ tabelas = {}, tokens = {}, rpc = {} } = {}) {
   banco.rpc = async (nome, args) => {
     banco.chamadasRpc.push({ nome, args });
     const fn = rpc[nome];
-    return { data: fn ? fn(args) : null, error: null };
+    const r = fn ? fn(args) : null;
+    if (r && r.__erro) return { data: null, error: { message: r.__erro } };
+    return { data: r, error: null };
   };
   banco.auth = {
     getUser: async (token) => ({ data: { user: tokens[token] ?? null } }),
