@@ -275,7 +275,7 @@ function montarPayload(order, formaPagamentoBling) {
     }),
     parcelas: [
       {
-        dataVencimento: hoje,
+        data: hoje,
         valor: arred(totalItens + frete),
         formaPagamento: { id: formaPagamentoBling },
       },

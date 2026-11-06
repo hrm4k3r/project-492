@@ -90,7 +90,7 @@ describe("emitirNFe", () => {
     expect(nota.itens[0].codigo).toBeTruthy();
     expect(nota.itens[0].quantidade * nota.itens[0].valor).toBeCloseTo(90, 2);
     expect(nota.parcelas[0].valor).toBe(105);
-    expect(nota.parcelas[0].dataVencimento).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(nota.parcelas[0].data).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it("não cria uma segunda nota: depois de falha no envio, só reenvia a mesma", async () => {
