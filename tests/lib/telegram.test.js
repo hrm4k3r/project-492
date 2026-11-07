@@ -100,7 +100,7 @@ describe("aviso de estoque baixo no Telegram", () => {
     expect(chamadas).toHaveLength(0);
 
     process.env.TELEGRAM_BOT_TOKEN = "tok";
-    process.env.TELEGRAM_CHAT_ID = "1, 2";
+    process.env.TELEGRAM_CHAT_ID = "1; 2";
     await enviarTelegramEstoqueBaixo(lista);
     expect(chamadas.map((c) => c.chat_id)).toEqual(["1", "2"]);
     await enviarTelegramEstoqueBaixo([]);

@@ -6,6 +6,7 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 
 import {
   escaparHtml,
+  destinosDoAviso,
   enviarEmailConfirmacaoPedido,
   enviarEmailAtualizacaoStatus,
   enviarEmailPedidoRecebido,
@@ -163,5 +164,16 @@ describe("e-mails de compra por modalidade", () => {
       expect(enviados[0].html).toContain("restam <strong>2</strong>");
       expect(enviados[0].html).not.toContain("<b>Tinto</b>");
     });
+  });
+});
+
+describe("destinosDoAviso", () => {
+  it("aceita vírgula, ponto e vírgula, espaço e quebra de linha", () => {
+    expect(destinosDoAviso("a@x.com, b@y.com")).toEqual(["a@x.com", "b@y.com"]);
+    expect(destinosDoAviso("a@x.com; b@y.com")).toEqual(["a@x.com", "b@y.com"]);
+    expect(destinosDoAviso("a@x.com;b@y.com ; ")).toEqual(["a@x.com", "b@y.com"]);
+    expect(destinosDoAviso("a@x.com\nb@y.com")).toEqual(["a@x.com", "b@y.com"]);
+    expect(destinosDoAviso("")).toEqual([]);
+    expect(destinosDoAviso(undefined)).toEqual([]);
   });
 });

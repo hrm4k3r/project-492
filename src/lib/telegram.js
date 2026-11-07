@@ -12,7 +12,7 @@ const ROTULO_MODALIDADE = {
 
 function destinos() {
   return (process.env.TELEGRAM_CHAT_ID ?? "")
-    .split(",")
+    .split(/[,;\s]+/)
     .map((c) => c.trim())
     .filter(Boolean);
 }

@@ -407,13 +407,16 @@ function templateAvisoLoja(order, pago = true) {
   });
 }
 
+// Lista de e-mails do aviso à loja. Aceita vírgula, ponto e vírgula, espaço ou quebra de linha
+// ("a@x.com; b@y.com" já derrubou todos os avisos por virar um único endereço inválido).
+export function destinosDoAviso(valor = process.env.EMAIL_AVISO_LOJA) {
+  return String(valor ?? "").split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+}
+
 // Aviso interno de novo pedido: na criação ({ pago: false }) e quando o pagamento é confirmado.
 // Só envia se EMAIL_AVISO_LOJA estiver definido (um ou mais e-mails separados por vírgula).
 export async function enviarEmailNovoPedidoParaLoja(orderId, { pago = true } = {}) {
-  const destinos = (process.env.EMAIL_AVISO_LOJA ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
+  const destinos = destinosDoAviso();
   if (destinos.length === 0) return;
 
   try {
@@ -460,10 +463,7 @@ export function templateEstoqueBaixo(produtos) {
 
 // Só envia se EMAIL_AVISO_LOJA estiver definido. Nunca lança erro.
 export async function enviarEmailEstoqueBaixo(produtos) {
-  const destinos = (process.env.EMAIL_AVISO_LOJA ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
+  const destinos = destinosDoAviso();
   if (destinos.length === 0 || !produtos?.length) return;
 
   try {
