@@ -7,11 +7,12 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../../config/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faGauge, faCashRegister, faReceipt, faWineBottle, faBoxOpen, faTruck, faTags, faGear, faRightFromBracket, faArrowUpRightFromSquare, faLayerGroup,
+  faGauge, faChartLine, faCashRegister, faReceipt, faWineBottle, faBoxOpen, faTruck, faTags, faGear, faRightFromBracket, faArrowUpRightFromSquare, faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
 
 const navItems = [
   { href: "/admin", label: "Painel", icon: faGauge },
+  { href: "/admin/relatorio", label: "Relatório de vendas", icon: faChartLine },
   { href: "/admin/pedidos", label: "Pedidos", icon: faBoxOpen, badge: true },
   { href: "/admin/pdv", label: "Vender na loja", icon: faCashRegister },
   { href: "/admin/vendas", label: "Vendas do balcão", icon: faReceipt },
