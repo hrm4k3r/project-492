@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { formatBRL, LOJA } from "./loja";
 import { MOTOBOY_SERVICO } from "./motoboy";
+import { linkRastreio } from "./rastreio";
 
 const FROM = `Curadoria da Mesa <${process.env.RESEND_FROM_EMAIL}>`;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.curadoriadamesa.com.br";
@@ -261,6 +262,7 @@ function templateAtualizacaoStatus(order, nome, status) {
     ? `<div style="background:#F8F1E4;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
          <p style="margin:0;font-size:13px;color:#888;">Código de rastreio</p>
          <p style="margin:4px 0 0;font-size:18px;font-weight:700;letter-spacing:0.05em;color:#5A2A14;">${escaparHtml(order.codigo_rastreio)}</p>
+         ${linkRastreio(order.codigo_rastreio) ? `<p style="margin:10px 0 0;"><a href="${linkRastreio(order.codigo_rastreio)}" style="color:#B85C38;font-size:14px;">Rastrear minha encomenda</a></p>` : ""}
        </div>`
     : "";
 

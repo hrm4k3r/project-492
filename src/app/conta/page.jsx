@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../../config/supabase";
 import { formatBRL } from "../../lib/loja";
+import { linkRastreio, normalizarCodigo } from "../../lib/rastreio";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faRightFromBracket, faPlus, faLocationDot, faBoxOpen, faTrashCan, faStore, faArrowRight,
+  faRightFromBracket, faPlus, faLocationDot, faBoxOpen, faTrashCan, faStore, faArrowRight, faTruckFast, faCopy,
 } from "@fortawesome/free-solid-svg-icons";
 import AddressForm from "../components/AddressForm";
 
@@ -38,6 +39,44 @@ function Acompanhamento({ status, retirada }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+function Rastreio({ codigo }) {
+  const [copiado, setCopiado] = useState(false);
+  const limpo = normalizarCodigo(codigo);
+  const link = linkRastreio(limpo);
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(limpo);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      /* sem permissão de área de transferência: o código continua visível para copiar à mão */
+    }
+  };
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-gold/10 px-4 py-3">
+      <p className="flex items-center gap-2 text-sm text-primary">
+        <FontAwesomeIcon icon={faTruckFast} className="text-terracotta" />
+        <span>
+          Código de rastreio: <strong className="select-all tracking-wide">{limpo}</strong>
+        </span>
+      </p>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={copiar} className="inline-flex items-center gap-1.5 text-xs text-primary/70 underline">
+          <FontAwesomeIcon icon={faCopy} />
+          {copiado ? "Copiado!" : "Copiar"}
+        </button>
+        {link && (
+          <a href={link} target="_blank" rel="noopener noreferrer" className="btn-outline !py-2 text-xs">
+            Rastrear
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 

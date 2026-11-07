@@ -105,6 +105,19 @@ describe("e-mails de compra por modalidade", () => {
     expect(enviados[0].html).not.toContain("BR1<b>23");
   });
 
+  it("código dos Correios ganha o link de rastreio; outros códigos não", async () => {
+    banco(pedido({ codigo_rastreio: "AA123456789BR" }));
+    await enviarEmailAtualizacaoStatus("abcdef12-0000", "enviado");
+    expect(enviados[0].html).toContain("objetos=AA123456789BR");
+    expect(enviados[0].html).toContain("Rastrear minha encomenda");
+
+    enviados.length = 0;
+    banco(pedido({ codigo_rastreio: "14012345678901" }));
+    await enviarEmailAtualizacaoStatus("abcdef12-0000", "enviado");
+    expect(enviados[0].html).toContain("14012345678901");
+    expect(enviados[0].html).not.toContain("Rastrear minha encomenda");
+  });
+
   it("motoboy e retirada não mostram caixa de rastreio mesmo com código salvo", async () => {
     banco(pedido({ frete_servico: "Entrega por motoboy", codigo_rastreio: "XYZ999" }));
     await enviarEmailAtualizacaoStatus("abcdef12-0000", "enviado");

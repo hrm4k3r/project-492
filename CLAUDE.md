@@ -57,6 +57,7 @@ src/lib/
   pedidos.js       # confirmarPagamento(): único ponto que marca pago e dispara e-mail + NF-e (server-only)
   adminAuth.js     # requisicaoDeAdmin(request): confere Bearer token + role admin (server-only)
   melhorenvio.js    # Shipping API client (server-only — never import from client components)
+  rastreio.js      # Link de rastreio (só código dos Correios); usado em Minha conta e no e-mail de envio
   planilha.js       # CSV import/export for products
   useConfiguracoes.js # Hook for store configuration from Supabase
 config/supabase.js  # Supabase client initialization
