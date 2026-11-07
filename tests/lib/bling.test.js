@@ -78,7 +78,7 @@ describe("emitirNFe", () => {
     expect(nota.contato).toMatchObject({ tipoPessoa: "F", numeroDocumento: "12345678909" });
     expect(nota.contato.endereco.cep).toBe("37470000");
     expect(nota.itens[0]).toMatchObject({ cfop: "6102", quantidade: 2, valor: 50 });
-    expect(nota.itens[0].produto.ncm).toBe("22042100");
+    expect(nota.itens[0].classificacaoFiscal).toBe("22042100");
     expect(nota.parcelas[0]).toMatchObject({ valor: 115, formaPagamento: { id: 777 } });
   });
 

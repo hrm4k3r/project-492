@@ -269,11 +269,8 @@ function montarPayload(order, formaPagamentoBling) {
         valor: valorUnitario,
         cfop,
         unidade: item.produtos?.unidade ?? "UN",
-        produto: {
-          nome: item.titulo,
-          unidade: item.produtos?.unidade ?? "UN",
-          ncm: (item.produtos?.ncm ?? "").replace(/\D/g, ""),
-        },
+        // NCM do item na NF-e (o Bling ignorava o NCM dentro de "produto" e abria a nota com 00000000).
+        classificacaoFiscal: (item.produtos?.ncm ?? "").replace(/\D/g, ""),
       };
     }),
     parcelas: [
