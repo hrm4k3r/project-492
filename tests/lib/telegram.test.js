@@ -4,7 +4,7 @@ import { criarBanco } from "../helpers/fakeSupabase";
 const h = vi.hoisted(() => ({ db: null }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 
-import { enviarTelegramNovoPedido, textoNovoPedido } from "../../src/lib/telegram";
+import { enviarTelegramNovoPedido, textoNovoPedido, textoEstoqueBaixo, enviarTelegramEstoqueBaixo } from "../../src/lib/telegram";
 
 function pedido(extra = {}) {
   return {
@@ -71,5 +71,39 @@ describe("aviso no Telegram", () => {
     const erro = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(enviarTelegramNovoPedido("abcdef12-0000")).resolves.toBeUndefined();
     expect(erro).toHaveBeenCalled();
+  });
+});
+
+describe("aviso de estoque baixo no Telegram", () => {
+  const env = { ...process.env };
+  afterEach(() => { process.env = { ...env }; });
+
+  it("monta a mensagem com esgotado/restam e escapa o nome do produto", () => {
+    const texto = textoEstoqueBaixo([
+      { produto: "<b>Vinho</b>", estoque: 2, estoque_minimo: 3 },
+      { produto: "Queijo", estoque: 0, estoque_minimo: 1 },
+    ]);
+    expect(texto).toContain("Estes produtos chegaram");
+    expect(texto).toContain("&lt;b&gt;Vinho&lt;/b&gt; — restam <b>2</b> (mínimo 3)");
+    expect(texto).toContain("Queijo — <b>esgotado</b> (mínimo 1)");
+    expect(texto).toContain("/admin/produtos");
+  });
+
+  it("só envia com token e chat configurados, a todos os chats", async () => {
+    const chamadas = [];
+    global.fetch = vi.fn(async (url, opcoes) => { chamadas.push(JSON.parse(opcoes.body)); return { ok: true }; });
+    const lista = [{ produto: "Vinho", estoque: 1, estoque_minimo: 3 }];
+
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    delete process.env.TELEGRAM_CHAT_ID;
+    await enviarTelegramEstoqueBaixo(lista);
+    expect(chamadas).toHaveLength(0);
+
+    process.env.TELEGRAM_BOT_TOKEN = "tok";
+    process.env.TELEGRAM_CHAT_ID = "1, 2";
+    await enviarTelegramEstoqueBaixo(lista);
+    expect(chamadas.map((c) => c.chat_id)).toEqual(["1", "2"]);
+    await enviarTelegramEstoqueBaixo([]);
+    expect(chamadas).toHaveLength(2);
   });
 });

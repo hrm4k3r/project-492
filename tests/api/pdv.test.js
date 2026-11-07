@@ -4,7 +4,7 @@ import { criarBanco, requisicao, resposta } from "../helpers/fakeSupabase";
 const h = vi.hoisted(() => ({ db: null, avisoEstoque: vi.fn() }));
 
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
-vi.mock("../../src/lib/email", () => ({ enviarEmailEstoqueBaixo: (...a) => h.avisoEstoque(...a) }));
+vi.mock("../../src/lib/estoque", () => ({ avisarEstoqueBaixo: (...a) => h.avisoEstoque(...a) }));
 
 import { POST as vender } from "../../src/app/api/pdv/vender/route";
 import { POST as cancelar } from "../../src/app/api/pdv/cancelar/route";

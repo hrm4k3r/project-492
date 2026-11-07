@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { requisicaoDeAdmin } from "../../../../lib/adminAuth";
-import { enviarEmailEstoqueBaixo } from "../../../../lib/email";
+import { avisarEstoqueBaixo } from "../../../../lib/estoque";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +57,7 @@ export async function POST(request) {
   }
 
   // O aviso de reposição não pode derrubar uma venda já registrada.
-  if (data?.baixos?.length) await enviarEmailEstoqueBaixo(data.baixos).catch(() => {});
+  if (data?.baixos?.length) await avisarEstoqueBaixo(data.baixos);
 
   return Response.json({ ok: true, vendaId: data.venda_id, total: data.total });
 }

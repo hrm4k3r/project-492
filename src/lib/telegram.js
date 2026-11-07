@@ -43,6 +43,23 @@ export function textoNovoPedido(order, pago) {
   ].join("\n");
 }
 
+// Aviso de reposição: produtos que ficaram no estoque mínimo (ou menos) depois de uma venda.
+export function textoEstoqueBaixo(produtos) {
+  const linhas = produtos.map((p) =>
+    Number(p.estoque) === 0
+      ? `• ${escaparHtml(p.produto)} — <b>esgotado</b> (mínimo ${Number(p.estoque_minimo)})`
+      : `• ${escaparHtml(p.produto)} — restam <b>${Number(p.estoque)}</b> (mínimo ${Number(p.estoque_minimo)})`
+  );
+  return [
+    "⚠️ <b>Estoque baixo</b>",
+    produtos.length === 1 ? "Este produto chegou à quantidade mínima:" : "Estes produtos chegaram à quantidade mínima:",
+    "",
+    ...linhas,
+    "",
+    `<a href="${SITE}/admin/produtos">Repor no painel</a>`,
+  ].join("\n");
+}
+
 async function enviarMensagem(chatId, texto) {
   const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: "POST",
@@ -79,4 +96,20 @@ export async function enviarTelegramNovoPedido(orderId, { pago = true } = {}) {
   } catch (err) {
     console.error("Erro ao montar aviso do Telegram:", err);
   }
+}
+
+// Aviso de estoque baixo no Telegram. Mesma regra do aviso de pedido: só envia com token e chat
+// configurados e nunca lança erro (a venda já foi concluída).
+export async function enviarTelegramEstoqueBaixo(produtos) {
+  const chats = destinos();
+  if (!process.env.TELEGRAM_BOT_TOKEN || chats.length === 0 || !produtos?.length) return;
+
+  const texto = textoEstoqueBaixo(produtos);
+  await Promise.all(
+    chats.map((chat) =>
+      enviarMensagem(chat, texto).catch((err) =>
+        console.error(`Erro ao enviar aviso de estoque no Telegram (chat ${chat}):`, err.message)
+      )
+    )
+  );
 }
