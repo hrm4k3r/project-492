@@ -36,9 +36,9 @@ export default function PoliticaDePrivacidade() {
       <h3>Pedidos e pagamento</h3>
       <p>
         Produtos comprados, valores, forma de entrega, status do pedido e as
-        informações do Pix gerado para o pagamento. O pagamento é feito no
-        aplicativo do seu banco: <strong>não coletamos nem armazenamos dados de
-        cartão ou de conta bancária</strong>.
+        informações do pagamento (Pix gerado ou aprovação do cartão). O
+        pagamento é processado pelo Mercado Pago: <strong>não coletamos nem
+        armazenamos os dados do seu cartão ou da sua conta bancária</strong>.
       </p>
 
       <h3>Atendimento</h3>

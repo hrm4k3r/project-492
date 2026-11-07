@@ -26,7 +26,7 @@ export default function FaleConoscoConteudo() {
   const perguntas = [
     {
       p: "Como faço o pagamento?",
-      r: "O pagamento é por Pix. Ao finalizar o pedido, mostramos um QR Code e o código copia e cola. Depois de pagar, envie o comprovante pelo WhatsApp para agilizar a confirmação.",
+      r: "Você paga por Pix ou cartão de crédito e débito, em ambiente seguro do Mercado Pago. No Pix, mostramos um QR Code e o código copia e cola ao finalizar o pedido; a confirmação é automática, sem precisar enviar comprovante. No cartão, o pagamento é aprovado na hora, se estiver tudo certo com os dados.",
     },
     {
       p: "Como funciona a entrega?",

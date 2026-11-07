@@ -7,7 +7,7 @@ import { whatsappLink } from "../../../lib/loja";
 
 const diferenciais = [
   { icon: faTruckFast, texto: "Entrega para todo o Brasil" },
-  { icon: faQrcode, texto: "Pagamento por Pix" },
+  { icon: faQrcode, texto: "Pagamento por Pix ou cartão" },
   { icon: faWhatsapp, texto: "Atendimento pelo WhatsApp" },
 ];
 

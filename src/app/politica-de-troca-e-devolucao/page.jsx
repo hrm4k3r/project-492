@@ -67,8 +67,9 @@ export default function PoliticaDeTrocaDevolucao() {
 
       <h2>Como o reembolso é feito</h2>
       <p>
-        Como os pagamentos são feitos por Pix, o reembolso é feito por Pix, para
-        a conta do mesmo titular que realizou o pagamento. Ele acontece depois
+        O reembolso é feito pelo mesmo meio usado no pagamento: no Pix, para a
+        conta do mesmo titular que realizou o pagamento; no cartão, por estorno
+        na fatura, dentro do prazo da operadora do cartão. Ele acontece depois
         que recebermos e conferirmos o produto devolvido (ou, no caso de
         cancelamento antes do envio, assim que o cancelamento for confirmado).
       </p>

@@ -157,7 +157,7 @@ export default function Detalhes() {
             <p className="mt-4 text-lg leading-relaxed text-primary/70">{produto.shortdescription}</p>
           )}
           <p className="mt-6 font-display text-4xl font-semibold text-terracotta">{formatBRL(produto.valor)}</p>
-          <p className="mt-1 text-sm text-primary/55">Pagamento por Pix. Frete calculado no carrinho.</p>
+          <p className="mt-1 text-sm text-primary/55">Pagamento por Pix ou cartão. Frete calculado no carrinho.</p>
 
           {produto.estoque != null && produto.estoque <= 0 ? (
             <p className="mt-8 w-fit rounded-full bg-terracotta/15 px-6 py-3 text-sm font-medium uppercase tracking-wide text-terracotta">
@@ -212,7 +212,7 @@ export default function Detalhes() {
             </li>
             <li className="flex items-start gap-3">
               <FontAwesomeIcon icon={faQrcode} className="mt-0.5 text-gold" />
-              Pagamento por Pix, com QR Code gerado na hora.
+              Pague por Pix (QR Code na hora) ou cartão de crédito e débito.
             </li>
             <li className="flex items-start gap-3">
               <FontAwesomeIcon icon={faWhatsapp} className="mt-0.5 text-gold" />
