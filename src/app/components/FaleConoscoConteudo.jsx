@@ -6,13 +6,15 @@ import { faLocationDot, faPaperPlane, faPlus } from "@fortawesome/free-solid-svg
 import { faWhatsapp, faInstagram } from "@fortawesome/free-brands-svg-icons";
 import { LOJA, whatsappLink, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
+import { descreverFreteGratis } from "../../lib/freteGratis";
 
 const labelClass = "text-[11px] font-medium uppercase tracking-[0.18em] text-primary/60";
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-cardBorder bg-white px-4 py-3 text-primary outline-none transition-colors focus:border-gold";
 
 export default function FaleConoscoConteudo() {
-  const { freteGratisAcima } = useConfiguracoes();
+  const { freteGratisAcima, freteGratisRegioes } = useConfiguracoes();
+  const textoFreteGratis = descreverFreteGratis({ geral: freteGratisAcima, regioes: freteGratisRegioes }, formatBRL);
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,7 +33,7 @@ export default function FaleConoscoConteudo() {
     {
       p: "Como funciona a entrega?",
       r: `Entregamos para todo o Brasil. O frete é calculado pelo seu CEP direto no carrinho${
-        freteGratisAcima > 0 ? `, e compras acima de ${formatBRL(freteGratisAcima)} têm frete grátis` : ""
+        textoFreteGratis ? `. ${textoFreteGratis}` : ""
       }.`,
     },
     {

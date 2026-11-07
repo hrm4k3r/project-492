@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { LOJA, whatsappLink, formatBRL } from "../../lib/loja";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
+import { descreverFreteGratis } from "../../lib/freteGratis";
 import { useCategorias } from "../../lib/useCategorias";
 
 const CustomLink = ({ title, link }) => (
@@ -23,12 +24,12 @@ const CustomLink = ({ title, link }) => (
 export default function NavBar() {
   const { user, profile } = useAuth();
   const { totalItens } = useCart();
-  const { freteGratisAcima } = useConfiguracoes();
+  const { freteGratisAcima, freteGratisRegioes } = useConfiguracoes();
   const categorias = useCategorias();
 
   const avisos = [
     "Entregamos para todo o Brasil",
-    freteGratisAcima > 0 && `Frete grátis acima de ${formatBRL(freteGratisAcima)}`,
+    descreverFreteGratis({ geral: freteGratisAcima, regioes: freteGratisRegioes }, formatBRL),
   ].filter(Boolean);
 
   return (

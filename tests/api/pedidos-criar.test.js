@@ -32,6 +32,7 @@ function novoBanco({ rpc, configuracoes = [] } = {}) {
       addresses: [
         endereco("a1"),
         endereco("a-caxambu", { city: "Caxambu" }),
+        endereco("a-ba", { city: "Salvador", state: "BA" }),
         endereco("a-incompleto", { number: "" }),
         endereco("a-de-outro", { profile_id: "u2" }),
       ],
@@ -180,6 +181,42 @@ describe("POST /api/pedidos/criar", () => {
       const r = await chamar(corpo({ tipoEntrega: "entrega", freteServico: "PAC" }));
       expect(r.status).toBe(200);
       expect(h.db.tabelas.orders[0]).toMatchObject({ frete: 0, total: 100 });
+    });
+  });
+
+  describe("frete grátis por região", () => {
+    const cfg = (geral, regioes) => [
+      { chave: "frete_gratis_acima", valor: geral },
+      { chave: "frete_gratis_regioes", valor: regioes },
+    ];
+    const pedirEntrega = (extra = {}) => chamar(corpo({ tipoEntrega: "entrega", freteServico: "PAC", ...extra }));
+
+    it("região com valor próprio ganha frete grátis mesmo abaixo do valor geral", async () => {
+      h.db = novoBanco({ configuracoes: cfg(1000, { sudeste: 80 }) }); // endereço a1 é MG, subtotal 100
+      const r = await pedirEntrega();
+      expect(r.status).toBe(200);
+      expect(h.db.tabelas.orders[0]).toMatchObject({ frete: 0, total: 100 });
+    });
+
+    it("outra região segue o valor geral e paga o frete", async () => {
+      h.db = novoBanco({ configuracoes: cfg(1000, { sudeste: 80 }) });
+      const r = await pedirEntrega({ addressId: "a-ba" });
+      expect(r.status).toBe(200);
+      expect(h.db.tabelas.orders[0].frete).toBeGreaterThan(0);
+    });
+
+    it("região com valor próprio MAIOR que o subtotal cobra frete, mesmo com geral baixo", async () => {
+      h.db = novoBanco({ configuracoes: cfg(50, { sudeste: 500 }) });
+      const r = await pedirEntrega();
+      expect(r.status).toBe(200);
+      expect(h.db.tabelas.orders[0].frete).toBeGreaterThan(0);
+    });
+
+    it("valor 0 na região desliga o frete grátis nela", async () => {
+      h.db = novoBanco({ configuracoes: cfg(50, { sudeste: 0 }) });
+      const r = await pedirEntrega();
+      expect(r.status).toBe(200);
+      expect(h.db.tabelas.orders[0].frete).toBeGreaterThan(0);
     });
   });
 

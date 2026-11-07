@@ -12,6 +12,7 @@ import { useConfiguracoes } from "../../lib/useConfiguracoes";
 import { semOtimizar } from "../../lib/imagem";
 import { documentoValido } from "../../lib/documento";
 import { mesmaCidade } from "../../lib/motoboy";
+import { limiteFreteGratis } from "../../lib/freteGratis";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock, faArrowRight,
@@ -84,13 +85,15 @@ export default function Carrinho() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { items, updateQuantity, removeItem, subtotal, clearCart } = useCart();
-  const { freteGratisAcima, motoboyPreco, motoboyCidade } = useConfiguracoes();
+  const { freteGratisAcima: freteGratisGeral, freteGratisRegioes, motoboyPreco, motoboyCidade } = useConfiguracoes();
 
   const [cep, setCep] = useState("");
   const [tipoEntrega, setTipoEntrega] = useState("entrega");
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  // Valor mínimo do frete grátis para a região do endereço escolhido (sem endereço: o valor geral).
+  const freteGratisAcima = limiteFreteGratis({ uf: selectedAddress?.state, geral: freteGratisGeral, regioes: freteGratisRegioes });
   const [showAddressForm, setShowAddressForm] = useState(false);
 
   const [documento, setDocumento] = useState("");

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "../../../../config/supabase";
 import { invalidarConfiguracoes } from "../../../lib/useConfiguracoes";
 import { MOTOBOY_PADRAO } from "../../../lib/motoboy";
+import { REGIOES, normalizarRegioes } from "../../../lib/freteGratis";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faLink, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import AdminTitulo from "../components/AdminTitulo";
@@ -107,6 +108,7 @@ function ConexaoBling() {
 
 export default function AdminConfiguracoes() {
   const [freteGratis, setFreteGratis] = useState("");
+  const [regioes, setRegioes] = useState({}); // { sudeste: "500" } em texto, vazio = usa o valor geral
   const [motoboyPreco, setMotoboyPreco] = useState("");
   const [motoboyCidade, setMotoboyCidade] = useState("");
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,7 @@ export default function AdminConfiguracoes() {
       const { data } = await supabase.from("configuracoes").select("chave, valor");
       const mapa = Object.fromEntries((data ?? []).map((c) => [c.chave, c.valor]));
       setFreteGratis(String(mapa.frete_gratis_acima ?? 1000));
+      setRegioes(Object.fromEntries(Object.entries(normalizarRegioes(mapa.frete_gratis_regioes)).map(([k, v]) => [k, String(v)])));
       setMotoboyPreco(String(mapa.motoboy_preco ?? MOTOBOY_PADRAO.preco));
       setMotoboyCidade(String(mapa.motoboy_cidade ?? MOTOBOY_PADRAO.cidade));
       setLoading(false);
@@ -131,6 +134,18 @@ export default function AdminConfiguracoes() {
 
     const frete = Number(freteGratis);
     const motoboy = Number(motoboyPreco);
+    const regioesNum = {};
+    for (const { id, nome } of REGIOES) {
+      const texto = String(regioes[id] ?? "").trim().replace(",", ".");
+      if (texto === "") continue;
+      const n = Number(texto);
+      if (!(n >= 0)) {
+        setMensagem({ ok: false, texto: `Confira o valor da região ${nome}: use um número, sem negativo.` });
+        return;
+      }
+      regioesNum[id] = n;
+    }
+
     if (!(frete >= 0) || !(motoboy >= 0)) {
       setMensagem({ ok: false, texto: "Confira os valores: frete grátis e motoboy não podem ser negativos." });
       return;
@@ -144,6 +159,7 @@ export default function AdminConfiguracoes() {
     const agora = new Date().toISOString();
     const { error } = await supabase.from("configuracoes").upsert([
       { chave: "frete_gratis_acima", valor: frete, updated_at: agora },
+      { chave: "frete_gratis_regioes", valor: regioesNum, updated_at: agora },
       { chave: "motoboy_preco", valor: motoboy, updated_at: agora },
       { chave: "motoboy_cidade", valor: motoboyCidade.trim(), updated_at: agora },
     ]);
@@ -180,6 +196,28 @@ export default function AdminConfiguracoes() {
               value={freteGratis} onChange={(e) => setFreteGratis(e.target.value)}
               className={`${inputClass} mt-1.5 max-w-[12rem]`}
             />
+
+            <h3 className="mt-7 font-display text-xl font-semibold text-primary">Valor diferente por região (opcional)</h3>
+            <p className="mt-1 text-sm text-primary/55">
+              Para uma região ter frete grátis a partir de outro valor, preencha aqui. Vale pelo estado do endereço de
+              entrega e <strong>substitui</strong> o valor acima nessa região. Deixe em branco para usar o valor geral;
+              use 0 para não dar frete grátis na região.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {REGIOES.map((r) => (
+                <div key={r.id}>
+                  <label htmlFor={`regiao-${r.id}`} className={labelClass}>{r.nome} (R$)</label>
+                  <input
+                    id={`regiao-${r.id}`} type="number" min="0" step="0.01"
+                    placeholder="Igual ao valor geral"
+                    value={regioes[r.id] ?? ""}
+                    onChange={(e) => setRegioes((m) => ({ ...m, [r.id]: e.target.value }))}
+                    className={`${inputClass} mt-1.5`}
+                  />
+                  <p className="mt-1 text-[11px] text-primary/45">{r.ufs.join(", ")}</p>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className={cardClass}>

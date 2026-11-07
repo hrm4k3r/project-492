@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { cotarFrete } from "../../../../lib/frete";
+import { limiteFreteGratis, freteGratis } from "../../../../lib/freteGratis";
 import { documentoValido, somenteDigitos } from "../../../../lib/documento";
 import { MOTOBOY_PADRAO, MOTOBOY_SERVICO, mesmaCidade } from "../../../../lib/motoboy";
 import { enviarEmailPedidoRecebido, enviarEmailNovoPedidoParaLoja } from "../../../../lib/email";
@@ -168,13 +169,18 @@ export async function POST(request) {
       frete = arredondar(precoMotoboy);
       freteServicoFinal = MOTOBOY_SERVICO;
     } else if (tipoEntrega === "entrega") {
-      const { data: cfg } = await db
+      const { data: cfgs } = await db
         .from("configuracoes")
-        .select("valor")
-        .eq("chave", "frete_gratis_acima")
-        .maybeSingle();
-      const freteGratisAcima = Number(cfg?.valor ?? 1000);
-      const gratis = freteGratisAcima > 0 && subtotal >= freteGratisAcima;
+        .select("chave, valor")
+        .in("chave", ["frete_gratis_acima", "frete_gratis_regioes"]);
+      const mapaFrete = Object.fromEntries((cfgs ?? []).map((c) => [c.chave, c.valor]));
+      // Valor mínimo geral e, se o painel definiu, o da região (UF) do endereço de entrega.
+      const limiteGratis = limiteFreteGratis({
+        uf: endereco.state,
+        geral: mapaFrete.frete_gratis_acima ?? 1000,
+        regioes: mapaFrete.frete_gratis_regioes,
+      });
+      const gratis = freteGratis(subtotal, limiteGratis);
 
       const { opcoes } = await cotarFrete(
         db,
