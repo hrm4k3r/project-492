@@ -1,5 +1,6 @@
 // ATENÇÃO: server-only (usa melhorenvio.js). Nunca importe em componentes client.
 import { calcularFrete } from "./melhorenvio";
+import { agruparEmCaixas } from "./caixa";
 
 async function freteReserva(supabase, cepDestino) {
   const cepLimpo = cepDestino.replace(/\D/g, "");
@@ -15,31 +16,33 @@ async function freteReserva(supabase, cepDestino) {
   return [{ servico: match.regiao, preco: Number(match.preco), prazoDias: match.prazo_dias, origem: "tabela" }];
 }
 
-// Monta a lista de produtos (peso, medidas, seguro) que o Melhor Envio recebe, lendo do banco.
-// Usada pela cotação do carrinho e pelo simulador do painel, para as duas darem o mesmo resultado.
+// Monta a lista que o Melhor Envio recebe, lendo peso e medidas do banco. Produtos com as medidas da
+// caixa padrão são agrupados em caixas (lib/caixa.js). Usada pelo carrinho e pelo simulador do painel.
 export async function produtosParaMelhorEnvio(supabase, itens) {
   const ids = itens.map((i) => i.id);
-  const { data: produtos, error: produtosError } = await supabase
-    .from("produtos")
-    .select("id, peso_kg, altura_cm, largura_cm, comprimento_cm, valor")
-    .in("id", ids);
+  const [{ data: produtos, error: produtosError }, { data: cfgCaixa }] = await Promise.all([
+    supabase.from("produtos").select("id, peso_kg, altura_cm, largura_cm, comprimento_cm, valor").in("id", ids),
+    supabase.from("configuracoes").select("valor").eq("chave", "frete_caixa").maybeSingle(),
+  ]);
 
   if (produtosError || !produtos) {
     throw new Error("Não foi possível carregar os produtos do carrinho.");
   }
 
-  return itens.map((item) => {
+  const linhas = itens.map((item) => {
     const produto = produtos.find((p) => p.id === item.id);
     return {
       id: item.id,
-      width: produto?.largura_cm ?? 15,
-      height: produto?.altura_cm ?? 10,
-      length: produto?.comprimento_cm ?? 15,
-      weight: produto?.peso_kg ?? 0.5,
-      insurance_value: Number(produto?.valor ?? 0) * item.quantidade,
-      quantity: item.quantidade,
+      quantidade: item.quantidade,
+      valor: Number(produto?.valor ?? 0),
+      peso: Number(produto?.peso_kg ?? 0.5),
+      altura: Number(produto?.altura_cm ?? 10),
+      largura: Number(produto?.largura_cm ?? 15),
+      comprimento: Number(produto?.comprimento_cm ?? 15),
     };
   });
+
+  return agruparEmCaixas(linhas, cfgCaixa?.valor);
 }
 
 // itens: [{ id, quantidade }]. Retorna { opcoes, aviso? } com preços calculados no servidor.

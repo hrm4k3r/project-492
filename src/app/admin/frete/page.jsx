@@ -7,6 +7,7 @@ import {
   faPlus, faTrashCan, faFloppyDisk, faLink, faCheck, faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { formatBRL } from "../../../lib/loja";
+import { CAIXA_PADRAO, normalizarCaixa } from "../../../lib/caixa";
 import AdminTitulo from "../components/AdminTitulo";
 import { cardClass, inputClass, labelClass } from "../ui";
 
@@ -182,6 +183,69 @@ function SimuladorFrete() {
   );
 }
 
+// Caixa padrão de envio: produtos com as medidas dela vão agrupados em caixas (lib/caixa.js).
+function CaixaPadrao() {
+  const [form, setForm] = useState(null);
+  const [mensagem, setMensagem] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    supabase.from("configuracoes").select("valor").eq("chave", "frete_caixa").maybeSingle().then(({ data }) => {
+      const c = normalizarCaixa(data?.valor);
+      setForm(Object.fromEntries(Object.entries(c).map(([k, v]) => [k, String(v)])));
+    });
+  }, []);
+
+  if (!form) return null;
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const salvar = async () => {
+    setMensagem(null);
+    const c = normalizarCaixa(Object.fromEntries(Object.entries(form).map(([k, v]) => [k, String(v).replace(",", ".")])));
+    setSalvando(true);
+    const { error } = await supabase.from("configuracoes").upsert([
+      { chave: "frete_caixa", valor: c, updated_at: new Date().toISOString() },
+    ]);
+    setSalvando(false);
+    setMensagem(error ? { ok: false, texto: "Não foi possível salvar: " + error.message } : { ok: true, texto: "Caixa padrão salva. Vale na hora." });
+    if (!error) setForm(Object.fromEntries(Object.entries(c).map(([k, v]) => [k, String(v)])));
+  };
+
+  const campo = (k, rotulo, props = {}) => (
+    <div>
+      <label htmlFor={`caixa-${k}`} className={labelClass}>{rotulo}</label>
+      <input id={`caixa-${k}`} type="number" min="0" step="any" value={form[k]} onChange={set(k)} className={`${inputClass} mt-1.5`} {...props} />
+    </div>
+  );
+
+  return (
+    <section className={`${cardClass} mt-6`}>
+      <h2 className="font-display text-2xl font-semibold text-primary">Caixa padrão de envio</h2>
+      <p className="mt-1 max-w-2xl text-sm text-primary/60">
+        Produtos cadastrados com <strong>exatamente</strong> estas medidas vão juntos na mesma caixa: o frete é de uma
+        caixa (até a capacidade), não de uma caixa por unidade. Nesses produtos, o campo <strong>Peso</strong> deve ser o
+        de <strong>uma unidade</strong> (ex.: lata 0,57 kg, garrafa 0,925 kg). Produtos com outras medidas continuam
+        sendo cobrados um a um. Capacidade 0 desliga este recurso.
+      </p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {campo("capacidade", "Unidades por caixa", { step: "1" })}
+        {campo("pesoVazia", "Peso da caixa vazia (kg)")}
+        {campo("altura", "Altura (cm)")}
+        {campo("largura", "Largura (cm)")}
+        {campo("comprimento", "Comprimento (cm)")}
+      </div>
+      {mensagem && <p className={`mt-3 text-sm ${mensagem.ok ? "text-olive" : "text-terracotta"}`}>{mensagem.texto}</p>}
+      <button type="button" onClick={salvar} disabled={salvando} className="btn-primary mt-4 !py-3 text-xs disabled:opacity-60">
+        {salvando ? "Salvando..." : "Salvar caixa padrão"}
+      </button>
+      <p className="mt-2 text-xs text-primary/50">
+        Padrão: {CAIXA_PADRAO.capacidade} unidades, {CAIXA_PADRAO.altura}×{CAIXA_PADRAO.largura}×{CAIXA_PADRAO.comprimento} cm,
+        caixa vazia {CAIXA_PADRAO.pesoVazia} kg. Confira o peso real da caixa vazia na balança.
+      </p>
+    </section>
+  );
+}
+
 export default function AdminFrete() {
   const [regras, setRegras] = useState([]);
   const [nova, setNova] = useState(regraVazia);
@@ -257,6 +321,8 @@ export default function AdminFrete() {
       <div className="mt-8">
         <ConexaoMelhorEnvio />
       </div>
+
+      <CaixaPadrao />
 
       <SimuladorFrete />
 

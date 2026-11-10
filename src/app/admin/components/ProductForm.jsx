@@ -234,7 +234,7 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
           </div>
         </Secao>
 
-        <Secao titulo="Peso e dimensões" descricao="Da embalagem já pronta para envio. Afeta direto o valor do frete calculado.">
+        <Secao titulo="Peso e dimensões" descricao="Da embalagem já pronta para envio. Afeta direto o valor do frete. Produtos com as medidas da caixa padrão (Admin > Frete) vão agrupados na mesma caixa: nesses, informe o peso de UMA unidade.">
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <Campo label="Peso (kg)" htmlFor="peso_kg">
               <input id="peso_kg" required type="number" step="0.01" min="0.01" name="peso_kg" value={form.peso_kg} onChange={handleChange} className={inputClass} />

@@ -39,7 +39,9 @@ describe("POST /api/melhorenvio/diagnostico", () => {
       { empresa: "Jadlog", servico: ".Package", preco: 19.47, precoCheio: 25, prazoDias: 4, erro: null },
       { empresa: "Correios", servico: "PAC", preco: null, precoCheio: null, prazoDias: null, erro: "Serviço indisponível para as dimensões informadas." },
     ]);
-    expect(r.json.enviado[0]).toMatchObject({ largura: 16, altura: 25, comprimento: 23, pesoKg: 1, quantidade: 2, seguro: 100 });
+    // 2 unidades com as medidas da caixa padrão = 1 caixa (0,3 kg vazia + 2 x 1 kg), seguro das duas
+    expect(r.json.enviado).toHaveLength(1);
+    expect(r.json.enviado[0]).toMatchObject({ largura: 16, altura: 25, comprimento: 23, pesoKg: 2.3, quantidade: 1, seguro: 100 });
     expect(h.calcular).toHaveBeenCalledWith(expect.objectContaining({ cepDestino: "01310100" }));
   });
 });
