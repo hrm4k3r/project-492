@@ -274,6 +274,8 @@ create table if not exists orders (
   etiqueta_id text,                     -- envio no Melhor Envio (gravado ao criar o carrinho)
   etiqueta_status text check (etiqueta_status is null or etiqueta_status in ('carrinho', 'comprando', 'paga', 'gerada')),
   etiqueta_erro text,
+  enviado_em timestamptz,               -- postagem (sincronizada com o Melhor Envio)
+  entregue_em timestamptz,              -- entrega ao cliente (sincronizada com o Melhor Envio)
   payment_details jsonb,
   created_at timestamptz not null default now()
 );

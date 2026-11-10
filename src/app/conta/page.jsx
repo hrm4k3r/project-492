@@ -24,10 +24,13 @@ const statusInfo = {
 
 const etapas = ["pago", "preparando", "enviado", "entregue"];
 
-function Acompanhamento({ status, retirada }) {
+function Acompanhamento({ status, retirada, enviadoEm, entregueEm }) {
   const indice = etapas.indexOf(status);
   if (indice < 0) return null;
   const nomes = retirada ? ["Pago", "Preparando", "Pronto p/ retirada", "Retirado"] : ["Pago", "Preparando", "Enviado", "Entregue"];
+  // Datas da postagem e da entrega (só para envio por transportadora, preenchidas pela sincronização com o Melhor Envio).
+  const datas = retirada ? {} : { 2: enviadoEm, 3: entregueEm };
+  const formatar = (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : null);
   return (
     <ol className="mt-4 grid grid-cols-4 gap-2 text-center">
       {nomes.map((nome, i) => (
@@ -36,6 +39,7 @@ function Acompanhamento({ status, retirada }) {
           <span className={`mt-1.5 block text-[10px] uppercase tracking-wide ${i <= indice ? "text-primary" : "text-primary/40"}`}>
             {nome}
           </span>
+          {formatar(datas[i]) && <span className="block text-[10px] text-primary/55">{formatar(datas[i])}</span>}
         </li>
       ))}
     </ol>
@@ -208,7 +212,7 @@ export default function Conta() {
                       </span>
                     </div>
 
-                    <Acompanhamento status={order.status} retirada={retirada} />
+                    <Acompanhamento status={order.status} retirada={retirada} enviadoEm={order.enviado_em} entregueEm={order.entregue_em} />
 
                     <ul className="mt-5 space-y-1.5 border-t border-cardBorder pt-4 text-sm text-primary/80">
                       {order.order_items?.map((item) => (

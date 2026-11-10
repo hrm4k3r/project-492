@@ -9,7 +9,7 @@
 import { chamarMelhorEnvio, calcularFrete } from "./melhorenvio";
 import { produtosParaMelhorEnvio } from "./frete";
 import { chaveDaNFe } from "./bling";
-import { destinosDoAviso } from "./email";
+import { destinosDoAviso, enviarEmailAtualizacaoStatus } from "./email";
 import { LOJA } from "./loja";
 
 const somenteDigitos = (v) => String(v ?? "").replace(/\D/g, "");
@@ -208,6 +208,18 @@ export async function comprarEtiqueta(db, orderId) {
     // Volta ao último estado seguro: se já pagou, uma nova tentativa só gera a etiqueta (não paga de novo).
     await salvar(db, orderId, { etiqueta_status: ultimoEstado, etiqueta_erro: String(err.message).slice(0, 300) });
     throw err;
+  }
+
+  // Etiqueta gerada: o pedido pago passa a "preparando" (a postagem e a entrega vêm da sincronização
+  // com o Melhor Envio, ver lib/entregas.js). Condicional ao status lido, para o e-mail sair uma vez só.
+  if (order.status === "pago") {
+    const { data: mudou } = await db
+      .from("orders")
+      .update({ status: "preparando" })
+      .eq("id", orderId)
+      .eq("status", "pago")
+      .select("id");
+    if (mudou?.length) await Promise.resolve(enviarEmailAtualizacaoStatus(orderId, "preparando")).catch(console.error);
   }
 
   return { ok: true, codigoRastreio: await buscarRastreio(db, orderId, order.etiqueta_id) };

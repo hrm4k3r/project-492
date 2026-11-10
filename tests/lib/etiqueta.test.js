@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { criarBanco } from "../helpers/fakeSupabase";
 
-const h = vi.hoisted(() => ({ me: vi.fn(), calcular: vi.fn(), chave: vi.fn() }));
+const h = vi.hoisted(() => ({ me: vi.fn(), calcular: vi.fn(), chave: vi.fn(), email: vi.fn() }));
 vi.mock("../../src/lib/melhorenvio", () => ({
   chamarMelhorEnvio: (...a) => h.me(...a),
   calcularFrete: (...a) => h.calcular(...a),
 }));
 vi.mock("../../src/lib/bling", () => ({ chaveDaNFe: (...a) => h.chave(...a) }));
+vi.mock("../../src/lib/email", () => ({ destinosDoAviso: () => [], enviarEmailAtualizacaoStatus: (...a) => h.email(...a) }));
 vi.mock("../../src/lib/frete", () => ({
   produtosParaMelhorEnvio: async () => [{ id: "caixa-1", width: 16, height: 25, length: 23, weight: 1.2, insurance_value: 50, quantity: 1 }],
 }));
@@ -31,6 +32,7 @@ const ID = "abcdef12-0000";
 
 beforeEach(() => {
   h.me.mockReset();
+  h.email.mockReset().mockResolvedValue();
   h.calcular.mockReset().mockResolvedValue([
     { id: 1, name: "PAC", company: { name: "Correios" }, price: "31.56", delivery_time: 7 },
     { id: 2, name: "SEDEX", company: { name: "Correios" }, price: "62.10", delivery_time: 3 },
@@ -132,6 +134,23 @@ describe("comprarEtiqueta (gasta saldo)", () => {
     expect(h.me.mock.calls.map(([c]) => c)).toEqual(["/me/shipment/checkout", "/me/shipment/generate", "/me/orders/env-1"]);
     expect(r.codigoRastreio).toBe("AA123456789BR");
     expect(ordem(db)).toMatchObject({ etiqueta_status: "gerada", codigo_rastreio: "AA123456789BR" });
+  });
+
+  it("etiqueta gerada move o pedido de pago para preparando e avisa o cliente uma vez", async () => {
+    const db = pronto();
+    h.me.mockResolvedValue({});
+    await comprarEtiqueta(db, ID);
+    expect(ordem(db).status).toBe("preparando");
+    expect(h.email).toHaveBeenCalledTimes(1);
+    expect(h.email).toHaveBeenCalledWith(ID, "preparando");
+  });
+
+  it("pedido que já estava em preparando ou enviado não volta nem reenvia e-mail", async () => {
+    const db = novoBanco({ status: "enviado", etiqueta_id: "env-1", etiqueta_status: "carrinho" });
+    h.me.mockResolvedValue({});
+    await comprarEtiqueta(db, ID);
+    expect(ordem(db).status).toBe("enviado");
+    expect(h.email).not.toHaveBeenCalled();
   });
 
   it("clique duplo paga uma vez só", async () => {

@@ -30,6 +30,7 @@ export default function AdminPedidos() {
   const [salvandoId, setSalvandoId] = useState(null);
   const [emitindoId, setEmitindoId] = useState(null);
   const [etiquetandoId, setEtiquetandoId] = useState(null);
+  const [atualizandoEntregas, setAtualizandoEntregas] = useState(false);
 
   useEffect(() => {
     const inicial = new URLSearchParams(window.location.search).get("status");
@@ -192,6 +193,34 @@ O valor sai do saldo do Melhor Envio e não pode ser desfeito aqui.`
     else if (!r.dados.codigoRastreio) alert("O código de rastreio ainda não foi liberado. Tente de novo em alguns minutos.");
   };
 
+  // Consulta o Melhor Envio e atualiza sozinho o status dos pedidos com etiqueta (preparando, enviado, entregue).
+  const atualizarEntregas = async () => {
+    setAtualizandoEntregas(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch("/api/melhorenvio/entregas", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        alert("Não foi possível atualizar as entregas: " + (dados.error ?? resp.statusText));
+        return;
+      }
+      await carregar();
+      const n = dados.atualizados?.length ?? 0;
+      alert(
+        dados.verificados === 0
+          ? "Nenhum pedido com etiqueta aguardando entrega."
+          : n === 0
+          ? `${dados.verificados} envio(s) verificado(s): nenhuma mudança por enquanto.`
+          : `${n} pedido(s) atualizado(s) de ${dados.verificados} verificado(s). Os clientes foram avisados por e-mail.`
+      );
+    } finally {
+      setAtualizandoEntregas(false);
+    }
+  };
+
   const contagem = useMemo(() => {
     const mapa = { todos: pedidos.length };
     pedidos.forEach((p) => {
@@ -214,7 +243,11 @@ O valor sai do saldo do Melhor Envio e não pode ser desfeito aqui.`
 
   return (
     <div>
-      <AdminTitulo titulo="Pedidos" descricao="Confirme os pagamentos recebidos por Pix e acompanhe cada pedido." />
+      <AdminTitulo titulo="Pedidos" descricao="Confirme os pagamentos recebidos por Pix e acompanhe cada pedido.">
+        <button type="button" onClick={atualizarEntregas} disabled={atualizandoEntregas} className="btn-outline !py-2.5 text-xs disabled:opacity-60">
+          {atualizandoEntregas ? "Atualizando..." : "Atualizar entregas"}
+        </button>
+      </AdminTitulo>
 
       <div className="no-scrollbar mt-8 flex gap-2 overflow-x-auto pb-2">
         {abas.map(([valor, rotulo]) => (
