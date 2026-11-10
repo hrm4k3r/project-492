@@ -14,6 +14,7 @@ import { ProdutoCard, ProdutoCardSkeleton } from "../components/ProdutoCard";
 import { formatBRL, nomeDaCategoria, whatsappLink } from "../../lib/loja";
 import { semOtimizar } from "../../lib/imagem";
 import { formatarTeor } from "../../lib/cerveja";
+import { calcularDescontoPix } from "../../lib/pix";
 import { useConfiguracoes } from "../../lib/useConfiguracoes";
 
 const isPremiado = (text = "") => /pr[eê]mio|premiad/i.test(text);
@@ -87,6 +88,8 @@ export default function Detalhes() {
   }
 
   const imagens = produto.imagens || [];
+  // Mesmo cálculo do servidor (lib/pix.js), para o preço mostrado aqui bater com o cobrado no Pix.
+  const descontoNoPix = calcularDescontoPix({ subtotal: Number(produto.valor), percentual: descontoPixPercentual });
   const categoriaNome = nomeDaCategoria(produto.categoria);
   const origem = [produto.marca, produto.pais].filter(Boolean).join(" · ");
   const ficha = [
@@ -162,10 +165,18 @@ export default function Detalhes() {
             <p className="mt-4 text-lg leading-relaxed text-primary/70">{produto.shortdescription}</p>
           )}
           <p className="mt-6 font-display text-4xl font-semibold text-terracotta">{formatBRL(produto.valor)}</p>
-          {descontoPixPercentual > 0 && (
-            <p className="mt-1 text-sm font-medium text-olive">
-              {formatBRL(Math.round(Number(produto.valor) * (100 - descontoPixPercentual)) / 100)} no Pix ({descontoPixPercentual}% de desconto)
-            </p>
+          {descontoNoPix > 0 && (
+            <div className="mt-3 w-fit max-w-full rounded-xl bg-olive px-5 py-3.5 text-white shadow-soft">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-display text-4xl font-semibold leading-none">
+                  {formatBRL(Number(produto.valor) - descontoNoPix)}
+                </span>
+                <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-olive">
+                  {descontoPixPercentual}% off no Pix
+                </span>
+              </div>
+              <p className="mt-1.5 text-sm text-white/90">à vista no Pix · você economiza {formatBRL(descontoNoPix)}</p>
+            </div>
           )}
           <p className="mt-1 text-sm text-primary/55">Pagamento por Pix ou cartão. Frete calculado no carrinho.</p>
 
