@@ -8,7 +8,7 @@ vi.mock("../../src/lib/mercadopago", () => ({ buscarPagamento: async () => h.pag
 import { emitirNFe } from "../../src/lib/bling";
 
 const pedido = (extra = {}) => ({
-  id: "o1", total: 115, subtotal: 100, frete: 15, desconto: 0, created_at: "2026-11-04T12:00:00Z",
+  id: "o1", profile_id: "u1", total: 115, subtotal: 100, frete: 15, desconto: 0, created_at: "2026-11-04T12:00:00Z",
   payment_id: "pay1", nfe_id: null, nfe_status: null, nfe_erro: null,
   order_items: [
     { id: "i1", titulo: "Vinho", preco_unitario: 50, quantidade: 2, subtotal: 100,
@@ -38,6 +38,7 @@ beforeEach(() => {
   process.env.BLING_FORMA_PGTO_PIX = "777";
   delete process.env.BLING_FORMA_PGTO_CREDITO;
   h.db = criarBanco({
+    tokens: { "tok-u1": { id: "u1", email: "ana@teste.com" } },
     tabelas: {
       orders: [pedido()],
       integracoes: [{ id: "bling", dados: { access_token: "tok", refresh_token: "r", expires_at: Date.now() + 1e7 } }],
@@ -66,7 +67,7 @@ describe("emitirNFe", () => {
     const r = await emitirNFe("o1");
 
     expect(chamadas.map((c) => c.chave)).toEqual(["POST /nfe", "POST /nfe/123/enviar", "GET /nfe/123"]);
-    expect(chamadas[1].url).toContain("enviarEmail=false");
+    expect(chamadas[1].url).toContain("enviarEmail=true");
     expect(chamadas.every((c) => c.auth === "Bearer tok")).toBe(true);
     expect(ordem()).toMatchObject({ nfe_id: "123", nfe_status: "5", nfe_erro: null });
     expect(r).toEqual({ id: "123", situacao: "5" });
@@ -101,6 +102,25 @@ describe("emitirNFe", () => {
     const totalItens = nota.itens.reduce((t, i) => t + i.quantidade * i.valor, 0);
     expect(totalItens).toBeCloseTo(95, 2);
     expect(nota.parcelas[0].valor).toBe(110);
+  });
+
+  it("manda o e-mail do cliente ao Bling e liga o envio da nota por e-mail", async () => {
+    await emitirNFe("o1");
+    expect(chamadas[0].corpo.contato.email).toBe("ana@teste.com");
+    expect(chamadas[1].url).toContain("enviarEmail=true");
+  });
+
+  it("sem e-mail do cliente, emite a nota normalmente com o envio por e-mail desligado", async () => {
+    h.db = criarBanco({
+      tabelas: {
+        orders: [pedido()],
+        integracoes: [{ id: "bling", dados: { access_token: "tok", refresh_token: "r", expires_at: Date.now() + 1e7 } }],
+      },
+    });
+    await emitirNFe("o1");
+    expect(chamadas[0].corpo.contato.email).toBeUndefined();
+    expect(chamadas[1].url).toContain("enviarEmail=false");
+    expect(ordem()).toMatchObject({ nfe_status: "5" });
   });
 
   it("não cria uma segunda nota: depois de falha no envio, só reenvia a mesma", async () => {

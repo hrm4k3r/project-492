@@ -208,7 +208,7 @@ async function chamarBling(token, caminho, { method = "GET", body } = {}) {
 const SEM_RESPOSTA_AO_CRIAR =
   "O Bling não respondeu ao criar a nota. Confira em Vendas > Notas Fiscais de Saída se ela foi criada antes de tentar de novo, para não emitir duas.";
 
-function montarPayload(order, formaPagamentoBling) {
+function montarPayload(order, formaPagamentoBling, emailCliente) {
   const { addresses: address, profiles: profile, order_items: itens } = order;
   const estadoOrigem = process.env.BLING_ESTADO_ORIGEM ?? "SP";
   const docLimpo = profile.documento.replace(/\D/g, "");
@@ -250,6 +250,8 @@ function montarPayload(order, formaPagamentoBling) {
       nome: profile.full_name || "Cliente",
       tipoPessoa: docLimpo.length === 14 ? "J" : "F",
       numeroDocumento: docLimpo,
+      // Com o e-mail, o Bling consegue mandar a nota (DANFE e XML) ao cliente.
+      ...(emailCliente ? { email: emailCliente } : {}),
       endereco: {
         endereco: address.street,
         numero: address.number,
@@ -311,7 +313,7 @@ async function emitir(supabase, orderId) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select(
-      `id, total, subtotal, frete, desconto, desconto_pix, created_at, payment_id, nfe_id, nfe_status,
+      `id, profile_id, total, subtotal, frete, desconto, desconto_pix, created_at, payment_id, nfe_id, nfe_status,
        order_items ( id, titulo, preco_unitario, quantidade, subtotal, produto_id,
          produtos ( ncm, unidade, cfop )
        ),
@@ -327,6 +329,7 @@ async function emitir(supabase, orderId) {
   if (order.nfe_id && order.nfe_status) return { id: order.nfe_id, situacao: order.nfe_status, jaEmitida: true };
 
   let nfeId = order.nfe_id;
+  let emailCliente = null;
 
   if (!nfeId) {
     const { addresses: address, profiles: profile, order_items: itens } = order;
@@ -341,13 +344,16 @@ async function emitir(supabase, orderId) {
     }
 
     const formaPagamentoBling = await formaPagamentoDoPedido(order.payment_id);
+    // O e-mail do cliente fica no Auth do Supabase (não em profiles).
+    const { data: usuario } = await supabase.auth.admin.getUserById(order.profile_id).catch(() => ({ data: null }));
+    emailCliente = usuario?.user?.email ?? null;
     const accessToken = await obterAccessTokenValido();
 
     let criada;
     try {
       criada = await chamarBling(accessToken, "/nfe", {
         method: "POST",
-        body: montarPayload(order, formaPagamentoBling),
+        body: montarPayload(order, formaPagamentoBling, emailCliente),
       });
     } catch (err) {
       throw err.semResposta ? new Error(SEM_RESPOSTA_AO_CRIAR) : err;
@@ -361,7 +367,15 @@ async function emitir(supabase, orderId) {
   }
 
   const accessToken = await obterAccessTokenValido();
-  await chamarBling(accessToken, `/nfe/${encodeURIComponent(nfeId)}/enviar?enviarEmail=false`, { method: "POST" });
+  // O Bling envia a nota ao cliente por e-mail quando a Sefaz autoriza (modelo em Preferências > Notas
+  // Fiscais > Configurações de e-mail). Só liga se tivermos o e-mail do cliente; nota criada numa tentativa
+  // anterior (sem e-mail guardado aqui) é lida de novo do Auth.
+  if (!emailCliente) {
+    const { data: usuario } = await supabase.auth.admin.getUserById(order.profile_id).catch(() => ({ data: null }));
+    emailCliente = usuario?.user?.email ?? null;
+  }
+  const enviarEmail = Boolean(emailCliente);
+  await chamarBling(accessToken, `/nfe/${encodeURIComponent(nfeId)}/enviar?enviarEmail=${enviarEmail}`, { method: "POST" });
 
   // Situação depois do envio. A transmissão à Sefaz pode levar um tempo, então falha aqui não
   // invalida o envio: guarda "enviada" e o lojista confere no Bling.
