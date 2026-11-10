@@ -216,7 +216,8 @@ function montarPayload(order, formaPagamentoBling) {
 
   // O desconto do cupom é distribuído nos itens (proporcional), para o total da nota
   // bater com o que o cliente pagou. A última linha absorve a diferença de centavos.
-  const desconto = Number(order.desconto ?? 0);
+  // Cupom + desconto do Pix (já aplicado ao total quando o Pix foi confirmado): a nota fecha com o valor pago.
+  const desconto = Number(order.desconto ?? 0) + Number(order.desconto_pix ?? 0);
   const subtotalItens = itens.reduce((t, i) => t + Number(i.preco_unitario) * i.quantidade, 0);
   let descontoRestante = desconto;
   const linhas = itens.map((item, idx) => {
@@ -310,7 +311,7 @@ async function emitir(supabase, orderId) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select(
-      `id, total, subtotal, frete, desconto, created_at, payment_id, nfe_id, nfe_status,
+      `id, total, subtotal, frete, desconto, desconto_pix, created_at, payment_id, nfe_id, nfe_status,
        order_items ( id, titulo, preco_unitario, quantidade, subtotal, produto_id,
          produtos ( ncm, unidade, cfop )
        ),

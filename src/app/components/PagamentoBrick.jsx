@@ -3,6 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
 import { supabase } from "../../../config/supabase";
+import { formatBRL } from "../../lib/loja";
 
 // A rota de pagamento exige o token do cliente dono do pedido.
 async function cabecalhosAutenticados() {
@@ -34,7 +35,7 @@ function TabBtn({ ativa, onClick, icon, children }) {
   );
 }
 
-function PixSection({ orderId, onPago, onProcessando }) {
+function PixSection({ orderId, totalPix, onPago, onProcessando }) {
   const [pixData, setPixData] = useState(null);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState("");
@@ -106,6 +107,11 @@ function PixSection({ orderId, onPago, onProcessando }) {
 
   return (
     <div className="rounded-2xl border border-cardBorder bg-white p-8 text-center">
+      {totalPix != null && (
+        <p className="mb-3 font-display text-2xl font-semibold text-olive">
+          Total no Pix: {formatBRL(totalPix)}
+        </p>
+      )}
       <p className="text-sm text-primary/65">
         Clique para gerar o QR Code Pix. O código é válido por 30 minutos.
       </p>
@@ -122,7 +128,7 @@ function PixSection({ orderId, onPago, onProcessando }) {
   );
 }
 
-export default function PagamentoBrick({ orderId, total, onPago, onProcessando }) {
+export default function PagamentoBrick({ orderId, total, totalPix, onPago, onProcessando }) {
   const [modo, setModo] = useState("pix");
   const [aprovado, setAprovado] = useState(false);
   const [brickReady, setBrickReady] = useState(false);
@@ -184,7 +190,7 @@ export default function PagamentoBrick({ orderId, total, onPago, onProcessando }
         </TabBtn>
       </div>
 
-      {modo === "pix" && <PixSection orderId={orderId} onPago={onPago} onProcessando={onProcessando} />}
+      {modo === "pix" && <PixSection orderId={orderId} totalPix={totalPix} onPago={onPago} onProcessando={onProcessando} />}
 
       {modo === "card" && (
         <div>

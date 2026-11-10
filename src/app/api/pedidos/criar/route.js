@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { cotarFrete } from "../../../../lib/frete";
 import { limiteFreteGratis, freteGratis } from "../../../../lib/freteGratis";
+import { calcularDescontoPix } from "../../../../lib/pix";
 import { documentoValido, somenteDigitos } from "../../../../lib/documento";
 import { MOTOBOY_PADRAO, MOTOBOY_SERVICO, mesmaCidade } from "../../../../lib/motoboy";
 import { enviarEmailPedidoRecebido, enviarEmailNovoPedidoParaLoja } from "../../../../lib/email";
@@ -197,6 +198,15 @@ export async function POST(request) {
 
     const total = arredondar(Math.max(0, subtotal - desconto) + frete);
 
+    // Quanto o cliente economiza se pagar no Pix (percentual em Admin > Configurações). O pedido guarda o
+    // total cheio; o desconto só entra no total quando um pagamento Pix é confirmado.
+    const { data: cfgPix } = await db
+      .from("configuracoes")
+      .select("valor")
+      .eq("chave", "desconto_pix_percentual")
+      .maybeSingle();
+    const descontoPix = calcularDescontoPix({ subtotal, desconto, percentual: cfgPix?.valor });
+
     const { data: order, error: orderError } = await db
       .from("orders")
       .insert({
@@ -207,6 +217,7 @@ export async function POST(request) {
         frete,
         frete_servico: freteServicoFinal,
         desconto,
+        desconto_pix: descontoPix,
         total,
         coupon_code: couponCode,
       })

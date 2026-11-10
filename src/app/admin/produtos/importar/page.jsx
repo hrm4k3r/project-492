@@ -108,6 +108,8 @@ export default function ImportarProdutos() {
           marca: l.marca,
           pais: l.pais,
           estilo: l.estilo,
+          teor_alcoolico: l.teor_alcoolico,
+          ibu: l.ibu,
           peso_kg: l.peso_kg,
           altura_cm: l.altura_cm,
           largura_cm: l.largura_cm,
@@ -116,7 +118,7 @@ export default function ImportarProdutos() {
 
         if (l.situacao === "atualizar") {
           const payload = { valor: l.preco, categoria: l.categoria, ...l.medidasInformadas };
-          ["marca", "pais", "estilo"].forEach((campo) => {
+          ["marca", "pais", "estilo", "teor_alcoolico", "ibu"].forEach((campo) => {
             if (l[campo] !== null) payload[campo] = l[campo];
           });
           if (l.descricao !== null) payload.shortdescription = l.descricao;

@@ -31,7 +31,7 @@ export async function PATCH(request, { params }) {
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status")
+    .select("id, status, payment_method")
     .eq("id", id)
     .single();
 
@@ -47,7 +47,8 @@ export async function PATCH(request, { params }) {
   // caminho do Mercado Pago: e-mail de confirmação + NF-e, uma única vez.
   if (status === "pago" && order.status === "pendente") {
     try {
-      await confirmarPagamento(db, id);
+      // Se o cliente gerou o QR Code Pix deste pedido, quem pagou foi no valor com desconto do Pix.
+      await confirmarPagamento(db, id, { pix: order.payment_method === "pix" });
     } catch (error) {
       console.error("Erro ao confirmar pagamento manualmente:", error);
       return Response.json({ error: "Não foi possível atualizar o pedido." }, { status: 500 });

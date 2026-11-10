@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "@/lib/mercadopago";
 import { confirmarPagamento } from "@/lib/pedidos";
+import { centavosEsperados } from "@/lib/pix";
 
 function supabaseAdmin() {
   return createClient(
@@ -20,7 +21,7 @@ export async function POST(request) {
 
     const { data: order } = await db
       .from("orders")
-      .select("status, total, payment_id")
+      .select("status, total, desconto_pix, payment_id")
       .eq("id", orderId)
       .single();
 
@@ -38,14 +39,14 @@ export async function POST(request) {
     const payment = await buscarPagamento(String(mpPaymentId));
 
     if (payment.status === "approved") {
-      const esperado = Math.round(Number(order.total) * 100);
+      const esperado = centavosEsperados(order, payment);
       const pago = Math.round(Number(payment.transaction_amount) * 100);
       if (payment.external_reference !== orderId || Math.abs(esperado - pago) > 1) {
         console.error(`verificar: pagamento ${mpPaymentId} não confere com o pedido ${orderId}`);
         return Response.json({ status: "pendente", mpStatus: payment.status });
       }
 
-      await confirmarPagamento(db, orderId);
+      await confirmarPagamento(db, orderId, { pix: payment.payment_method_id === "pix" });
       return Response.json({ status: "pago" });
     }
 

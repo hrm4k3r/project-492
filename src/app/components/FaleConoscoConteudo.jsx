@@ -13,7 +13,7 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-cardBorder bg-white px-4 py-3 text-primary outline-none transition-colors focus:border-gold";
 
 export default function FaleConoscoConteudo() {
-  const { freteGratisAcima, freteGratisRegioes } = useConfiguracoes();
+  const { freteGratisAcima, freteGratisRegioes, descontoPixPercentual } = useConfiguracoes();
   const textoFreteGratis = descreverFreteGratis({ geral: freteGratisAcima, regioes: freteGratisRegioes }, formatBRL);
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
 
@@ -28,7 +28,7 @@ export default function FaleConoscoConteudo() {
   const perguntas = [
     {
       p: "Como faço o pagamento?",
-      r: "Você paga por Pix ou cartão de crédito e débito, em ambiente seguro do Mercado Pago. No Pix, mostramos um QR Code e o código copia e cola ao finalizar o pedido; a confirmação é automática, sem precisar enviar comprovante. No cartão, o pagamento é aprovado na hora, se estiver tudo certo com os dados.",
+      r: `Você paga por Pix ou cartão de crédito e débito, em ambiente seguro do Mercado Pago. ${descontoPixPercentual > 0 ? `No Pix você ganha ${descontoPixPercentual}% de desconto. ` : ""}No Pix, mostramos um QR Code e o código copia e cola ao finalizar o pedido; a confirmação é automática, sem precisar enviar comprovante. No cartão, o pagamento é aprovado na hora, se estiver tudo certo com os dados.`,
     },
     {
       p: "Como funciona a entrega?",

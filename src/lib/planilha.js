@@ -1,4 +1,5 @@
 import { CATEGORIAS } from "./loja";
+import { lerTeor, lerIbu } from "./cerveja";
 
 export const COLUNAS = [
   "nome",
@@ -7,6 +8,8 @@ export const COLUNAS = [
   "marca",
   "pais",
   "estilo",
+  "teor_alcoolico",
+  "ibu",
   "descricao",
   "fotos",
   "ativo",
@@ -23,6 +26,8 @@ const ALIASES = {
   marca: ["marca"],
   pais: ["pais", "paisdeorigem", "origem"],
   estilo: ["estilo", "tipo", "estilotipo"],
+  teor_alcoolico: ["teoralcoolico", "teor", "abv", "alcool"],
+  ibu: ["ibu", "amargor"],
   descricao: ["descricao", "descricaocurta", "shortdescription"],
   fotos: ["fotos", "foto", "imagem", "imagens"],
   ativo: ["ativo", "situacao", "status"],
@@ -209,6 +214,8 @@ export function interpretarPlanilha(texto, produtosExistentes = [], categorias =
       marca: pega("marca") || null,
       pais: pega("pais") || null,
       estilo: pega("estilo") || null,
+      teor_alcoolico: lerTeor(pega("teor_alcoolico")),
+      ibu: lerIbu(pega("ibu")),
       descricao: pega("descricao") || null,
       fotos,
       ativoInformado: lerAtivo(pega("ativo")),
@@ -263,6 +270,8 @@ export function modeloCSV() {
       "Huyghe",
       "Bélgica",
       "Belgian Ale",
+      "8,5",
+      "25",
       "Belgian strong ale dourada e encorpada",
       "delirium.jpg",
       "sim",
@@ -282,6 +291,8 @@ export function produtosParaLinhas(produtos, categorias = CATEGORIAS) {
     p.marca,
     p.pais,
     p.estilo,
+    p.teor_alcoolico == null ? "" : String(p.teor_alcoolico).replace(".", ","),
+    p.ibu == null ? "" : String(p.ibu),
     p.shortdescription,
     (p.imagens ?? []).join("|"),
     p.ativo ? "sim" : "não",

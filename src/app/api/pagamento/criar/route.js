@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { criarPagamento } from "@/lib/mercadopago";
+import { valorNoPix } from "@/lib/pix";
+import { confirmarPagamento } from "@/lib/pedidos";
 
 function supabaseAdmin() {
   return createClient(
@@ -28,7 +30,7 @@ export async function POST(request) {
 
     const { data: order, error: orderError } = await db
       .from("orders")
-      .select("id, total, profile_id, status")
+      .select("id, total, desconto_pix, profile_id, status")
       .eq("id", orderId)
       .single();
 
@@ -46,9 +48,13 @@ export async function POST(request) {
     const payerEmail = authUser?.user?.email || formData.payer?.email;
     const payerIdentification = formData.payer?.identification;
 
+    // Pix tem desconto; cartão paga o total cheio. O servidor decide, nunca o navegador.
+    const ehPix = selectedPaymentMethod === "bank_transfer" || formData.payment_method_id === "pix";
+    const valorACobrar = ehPix ? valorNoPix(order) : Number(order.total);
+
     const payment = await criarPagamento({
       orderId,
-      total: order.total,
+      total: valorACobrar,
       payerEmail,
       payerIdentification,
       selectedPaymentMethod,
@@ -63,9 +69,15 @@ export async function POST(request) {
       .update({
         payment_provider: "mercadopago",
         payment_id: String(payment.id),
-        ...(isApproved ? { status: "pago", payment_status: "pago" } : {}),
+        ...(ehPix ? { payment_method: "pix" } : {}),
       })
       .eq("id", orderId);
+
+    // Aprovado na hora (cartão): confirma pelo mesmo caminho do webhook, que dispara e-mail, baixa de
+    // estoque e NF-e uma única vez. Marcar "pago" direto aqui faria o webhook achar que já estava feito.
+    if (isApproved) {
+      await confirmarPagamento(db, orderId, { pix: ehPix });
+    }
 
     const result = {
       status: payment.status,

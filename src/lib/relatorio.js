@@ -30,7 +30,7 @@ function doSite(p) {
     cliente: p.profiles?.full_name ?? "",
     forma: "Site (Mercado Pago)",
     subtotal: Number(p.subtotal ?? 0),
-    desconto: Number(p.desconto ?? 0),
+    desconto: Number(p.desconto ?? 0) + Number(p.desconto_pix ?? 0),
     frete: Number(p.frete ?? 0),
     total: Number(p.total ?? 0),
     itens: (p.order_items ?? []).map((i) => ({ titulo: i.titulo, quantidade: i.quantidade, subtotal: Number(i.subtotal) })),

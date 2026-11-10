@@ -13,6 +13,7 @@ import { semOtimizar } from "../../lib/imagem";
 import { documentoValido } from "../../lib/documento";
 import { mesmaCidade } from "../../lib/motoboy";
 import { limiteFreteGratis } from "../../lib/freteGratis";
+import { calcularDescontoPix } from "../../lib/pix";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashCan, faMinus, faPlus, faTruckFast, faTag, faStore, faCheck, faLock, faArrowRight,
@@ -86,7 +87,7 @@ export default function Carrinho() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { items, updateQuantity, removeItem, subtotal, clearCart } = useCart();
-  const { freteGratisAcima: freteGratisGeral, freteGratisRegioes, motoboyPreco, motoboyCidade } = useConfiguracoes();
+  const { freteGratisAcima: freteGratisGeral, freteGratisRegioes, descontoPixPercentual, motoboyPreco, motoboyCidade } = useConfiguracoes();
 
   const [cep, setCep] = useState("");
   const [tipoEntrega, setTipoEntrega] = useState("entrega");
@@ -162,6 +163,8 @@ export default function Carrinho() {
       ? 0
       : (selecionada?.preco ?? 0);
   const total = Math.max(0, subtotal - desconto) + freteValor;
+  // Informativo: o desconto do Pix é aplicado pelo servidor quando o pagamento Pix é confirmado.
+  const descontoNoPix = calcularDescontoPix({ subtotal, desconto, percentual: descontoPixPercentual });
 
   const handleFinalizar = async () => {
     setErro("");
@@ -570,6 +573,12 @@ export default function Carrinho() {
             <span className="font-display text-xl text-primary">Total</span>
             <span className="font-display text-3xl font-semibold text-terracotta">{formatBRL(total)}</span>
           </div>
+          {descontoNoPix > 0 && (
+            <p className="-mt-2 rounded-xl bg-olive/10 p-3 text-sm text-olive">
+              Pagando no <strong>Pix</strong>, você ganha {descontoPixPercentual}% de desconto:{" "}
+              <strong>{formatBRL(Math.max(0, total - descontoNoPix))}</strong>
+            </p>
+          )}
 
           {user && (
             <div className="border-t border-cardBorder pt-4">

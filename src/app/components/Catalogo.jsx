@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../config/supabase";
 import { DESCRICAO_CATALOGO, whatsappLink } from "../../lib/loja";
+import { FAIXAS_TEOR, FAIXAS_IBU, naFaixa } from "../../lib/cerveja";
 import { useCategorias } from "../../lib/useCategorias";
 import { ProdutoCard, ProdutoCardSkeleton } from "./ProdutoCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -25,7 +26,7 @@ const opcoesUnicas = (lista, campo) => {
   return [...mapa.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
 };
 
-const FILTROS_VAZIOS = { busca: "", estilo: "", pais: "", marca: "", precoMin: "", precoMax: "" };
+const FILTROS_VAZIOS = { busca: "", estilo: "", pais: "", marca: "", teor: "", ibu: "", precoMin: "", precoMax: "" };
 
 const inputClass =
   "w-full rounded-lg border border-cardBorder bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-gold";
@@ -73,7 +74,7 @@ export default function Catalogo() {
   }, []);
 
   useEffect(() => {
-    setFiltros((f) => ({ ...f, estilo: "", pais: "", marca: "" }));
+    setFiltros((f) => ({ ...f, estilo: "", pais: "", marca: "", teor: "", ibu: "" }));
     setPagina(1);
   }, [categoria]);
 
@@ -95,6 +96,9 @@ export default function Catalogo() {
       estilo: opcoesUnicas(daCategoria, "estilo"),
       pais: opcoesUnicas(daCategoria, "pais"),
       marca: opcoesUnicas(daCategoria, "marca"),
+      // Faixas só aparecem se algum produto da seleção tem o dado e a faixa tem pelo menos um produto.
+      teor: FAIXAS_TEOR.filter((f) => daCategoria.some((p) => naFaixa(p.teor_alcoolico, f))),
+      ibu: FAIXAS_IBU.filter((f) => daCategoria.some((p) => naFaixa(p.ibu, f))),
     }),
     [daCategoria]
   );
@@ -112,6 +116,8 @@ export default function Catalogo() {
       if (filtros.estilo && norm(p.estilo) !== norm(filtros.estilo)) return false;
       if (filtros.pais && norm(p.pais) !== norm(filtros.pais)) return false;
       if (filtros.marca && norm(p.marca) !== norm(filtros.marca)) return false;
+      if (filtros.teor && !naFaixa(p.teor_alcoolico, FAIXAS_TEOR.find((f) => f.id === filtros.teor))) return false;
+      if (filtros.ibu && !naFaixa(p.ibu, FAIXAS_IBU.find((f) => f.id === filtros.ibu))) return false;
       if (min !== null && Number(p.valor) < min) return false;
       if (max !== null && Number(p.valor) > max) return false;
       return true;
@@ -255,6 +261,26 @@ export default function Catalogo() {
                     <option value="">Todas</option>
                     {opcoes.marca.map((o) => (
                       <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </Campo>
+              )}
+              {opcoes.teor.length > 0 && (
+                <Campo label="Teor alcoólico">
+                  <select value={filtros.teor} onChange={alterar("teor")} className={inputClass}>
+                    <option value="">Todos</option>
+                    {opcoes.teor.map((f) => (
+                      <option key={f.id} value={f.id}>{f.rotulo}</option>
+                    ))}
+                  </select>
+                </Campo>
+              )}
+              {opcoes.ibu.length > 0 && (
+                <Campo label="Amargor (IBU)">
+                  <select value={filtros.ibu} onChange={alterar("ibu")} className={inputClass}>
+                    <option value="">Todos</option>
+                    {opcoes.ibu.map((f) => (
+                      <option key={f.id} value={f.id}>{f.rotulo}</option>
                     ))}
                   </select>
                 </Campo>

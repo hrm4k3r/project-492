@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "../../../../config/supabase";
 import { useAuth } from "../../context/AuthContext";
 import { formatBRL } from "../../../lib/loja";
+import { valorNoPix } from "../../../lib/pix";
 import PagamentoBrick from "../../components/PagamentoBrick";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBoxOpen, faCheck, faStore, faLocationDot } from "@fortawesome/free-solid-svg-icons";
@@ -124,6 +125,7 @@ export default function PaginaPagamento() {
             <PagamentoBrick
               orderId={orderId}
               total={order.total}
+              totalPix={Number(order.desconto_pix) > 0 ? valorNoPix(order) : null}
               onPago={() => { setPago(true); setAguardandoConfirmacao(false); }}
               onProcessando={(id) => { setPaymentId(id); setAguardandoConfirmacao(true); }}
             />
@@ -167,6 +169,11 @@ export default function PaginaPagamento() {
               {formatBRL(order.total)}
             </span>
           </div>
+          {Number(order.desconto_pix) > 0 && (
+            <p className="mt-3 rounded-xl bg-olive/10 p-3 text-sm text-olive">
+              No <strong>Pix</strong> você paga <strong>{formatBRL(valorNoPix(order))}</strong> (desconto de {formatBRL(order.desconto_pix)}).
+            </p>
+          )}
         </aside>
       </div>
     </div>

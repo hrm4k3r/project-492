@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faTrashCan, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { SUGESTOES_PAIS, SUGESTOES_ESTILO } from "../../../lib/loja";
 import { useCategorias } from "../../../lib/useCategorias";
+import { ehCerveja, lerTeor, lerIbu } from "../../../lib/cerveja";
 import { semOtimizar } from "../../../lib/imagem";
 import { cardClass, inputClass, labelClass } from "../ui";
 
@@ -40,6 +41,8 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
     marca: initialData?.marca ?? "",
     pais: initialData?.pais ?? "",
     estilo: initialData?.estilo ?? "",
+    teor_alcoolico: initialData?.teor_alcoolico ?? "",
+    ibu: initialData?.ibu ?? "",
     ncm: initialData?.ncm ?? "",
     unidade: initialData?.unidade ?? "UN",
     peso_kg: initialData?.peso_kg ?? 0.5,
@@ -107,6 +110,9 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
       marca: form.marca.trim() || null,
       pais: form.pais.trim() || null,
       estilo: form.estilo.trim() || null,
+      // Só cerveja tem teor alcoólico e IBU no filtro; em outras categorias o dado é descartado.
+      teor_alcoolico: ehCerveja(form.categoria) ? lerTeor(form.teor_alcoolico) : null,
+      ibu: ehCerveja(form.categoria) ? lerIbu(form.ibu) : null,
       ncm: form.ncm.replace(/\D/g, "") || null,
       unidade: form.unidade.trim().toUpperCase() || "UN",
       peso_kg: Number(form.peso_kg),
@@ -176,6 +182,23 @@ export default function ProductForm({ initialData, onSubmit, submitLabel }) {
               </datalist>
             </Campo>
           </div>
+
+          {ehCerveja(form.categoria) && (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Campo label="Teor alcoólico (%)" htmlFor="teor_alcoolico">
+                <input
+                  id="teor_alcoolico" name="teor_alcoolico" type="number" step="0.1" min="0" max="100"
+                  value={form.teor_alcoolico} onChange={handleChange} placeholder="Ex: 5,5" className={inputClass}
+                />
+              </Campo>
+              <Campo label="IBU (amargor)" htmlFor="ibu">
+                <input
+                  id="ibu" name="ibu" type="number" step="1" min="0" max="200"
+                  value={form.ibu} onChange={handleChange} placeholder="Ex: 35" className={inputClass}
+                />
+              </Campo>
+            </div>
+          )}
         </Secao>
 
         <Secao

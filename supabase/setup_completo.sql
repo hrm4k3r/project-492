@@ -22,6 +22,8 @@ create table if not exists produtos (
   pais text,
   marca text,
   estilo text,
+  teor_alcoolico numeric(4, 1) check (teor_alcoolico is null or (teor_alcoolico >= 0 and teor_alcoolico <= 100)),
+  ibu integer check (ibu is null or (ibu >= 0 and ibu <= 200)),
   peso_kg numeric(6, 2) not null default 0.5,
   altura_cm numeric(6, 2) not null default 10,
   largura_cm numeric(6, 2) not null default 15,
@@ -268,6 +270,7 @@ create table if not exists orders (
   nfe_status text,                      -- situação no Bling depois do envio à Sefaz
   nfe_erro text,                        -- último erro da emissão (mostrado em Admin > Pedidos)
   payment_method text check (payment_method in ('pix')),
+  desconto_pix numeric(10, 2) not null default 0 check (desconto_pix >= 0), -- desconto do Pix, aplicado ao total quando o Pix é confirmado
   payment_details jsonb,
   created_at timestamptz not null default now()
 );

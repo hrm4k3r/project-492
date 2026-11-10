@@ -260,3 +260,99 @@ describe("POST /api/pagamento/criar", () => {
     expect(JSON.stringify(r.json)).not.toMatch(/token secreto|MP erro/);
   });
 });
+
+describe("desconto no Pix", () => {
+  // Pedido de R$ 105 (R$ 100 de produtos + R$ 5 de frete) com R$ 5 de desconto se pagar no Pix.
+  const comDesconto = (id = "o1", extra = {}) => pedido(id, { total: 105, desconto_pix: 5, ...extra });
+  const total = (id) => h.db.tabelas.orders.find((o) => o.id === id);
+  const pix = (valor, extra = {}) => ({ status: "approved", external_reference: "o1", payment_method_id: "pix", transaction_amount: valor, ...extra });
+
+  describe("cobrança (POST /api/pagamento/criar)", () => {
+    const chamar = (body) => criar(requisicao("https://loja.test/api/pagamento/criar", { token: "tok-u1", body })).then(resposta);
+
+    it("Pix cobra o total menos o desconto e marca o pedido como Pix", async () => {
+      h.db = novoBanco([comDesconto()]);
+      h.criarPagamento.mockResolvedValue({ id: 1, status: "pending", payment_method_id: "pix" });
+      await chamar({ orderId: "o1", selectedPaymentMethod: "bank_transfer", formData: { payment_method_id: "pix" } });
+      expect(h.criarPagamento).toHaveBeenCalledWith(expect.objectContaining({ total: 100 }));
+      expect(total("o1")).toMatchObject({ total: 105, payment_method: "pix", status: "pendente" });
+    });
+
+    it("cartão cobra o total cheio, sem desconto", async () => {
+      h.db = novoBanco([comDesconto()]);
+      h.criarPagamento.mockResolvedValue({ id: 2, status: "in_process", payment_method_id: "visa" });
+      await chamar({ orderId: "o1", selectedPaymentMethod: "credit_card", formData: { token: "t", payment_method_id: "visa" } });
+      expect(h.criarPagamento).toHaveBeenCalledWith(expect.objectContaining({ total: 105 }));
+      expect(total("o1").payment_method).toBeUndefined();
+    });
+
+    it("cartão aprovado na hora confirma pelo caminho completo (e-mail, NF-e) e zera o desconto do Pix", async () => {
+      h.db = novoBanco([comDesconto()]);
+      h.criarPagamento.mockResolvedValue({ id: 3, status: "approved", payment_method_id: "visa" });
+      await chamar({ orderId: "o1", selectedPaymentMethod: "credit_card", formData: { token: "t", payment_method_id: "visa" } });
+      expect(total("o1")).toMatchObject({ status: "pago", total: 105, desconto_pix: 0 });
+      expect(h.enviarEmail).toHaveBeenCalledTimes(1);
+      expect(h.emitirNFe).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("confirmação (polling e webhook)", () => {
+    it("Pix pago com o valor com desconto confirma e o total passa a ser o valor pago", async () => {
+      h.db = novoBanco([comDesconto("o1", { payment_id: "mp-1" })]);
+      h.buscarPagamento.mockResolvedValue(pix(100));
+      const r = await resposta(await verificar(requisicao("https://loja.test/api/pagamento/verificar", { body: { orderId: "o1" } })));
+      expect(r.json.status).toBe("pago");
+      expect(total("o1")).toMatchObject({ status: "pago", total: 100, desconto_pix: 5 });
+    });
+
+    it("Pix pago com o valor cheio (sem o desconto) não confere", async () => {
+      h.db = novoBanco([comDesconto("o1", { payment_id: "mp-1" })]);
+      h.buscarPagamento.mockResolvedValue(pix(105));
+      const r = await resposta(await verificar(requisicao("https://loja.test/api/pagamento/verificar", { body: { orderId: "o1" } })));
+      expect(r.json.status).toBe("pendente");
+      expect(total("o1").status).toBe("pendente");
+    });
+
+    it("cartão com o valor com desconto não confere; com o valor cheio confirma sem desconto", async () => {
+      h.db = novoBanco([comDesconto("o1", { payment_id: "mp-1" })]);
+      h.buscarPagamento.mockResolvedValue({ status: "approved", external_reference: "o1", payment_method_id: "visa", transaction_amount: 100 });
+      const chamar = async () => resposta(await verificar(requisicao("https://loja.test/api/pagamento/verificar", { body: { orderId: "o1" } })));
+      expect((await chamar()).json.status).toBe("pendente");
+
+      h.buscarPagamento.mockResolvedValue({ status: "approved", external_reference: "o1", payment_method_id: "visa", transaction_amount: 105 });
+      expect((await chamar()).json.status).toBe("pago");
+      expect(total("o1")).toMatchObject({ total: 105, desconto_pix: 0 });
+    });
+
+    it("webhook de Pix também aplica o desconto", async () => {
+      h.db = novoBanco([comDesconto()]);
+      h.buscarPagamento.mockResolvedValue(pix(100));
+      const r = await resposta(await webhook(requisicao("https://loja.test/api/pagamento/webhook?data.id=mp-1", { body: { type: "payment", data: { id: "mp-1" } } })));
+      expect(r.status).toBe(200);
+      expect(total("o1")).toMatchObject({ status: "pago", total: 100, desconto_pix: 5 });
+    });
+  });
+
+  describe("confirmarPagamento", () => {
+    it("só aplica o desconto quando o pagamento foi Pix", async () => {
+      h.db = novoBanco([comDesconto("a"), comDesconto("b")]);
+      await confirmarPagamento(h.db, "a", { pix: true });
+      await confirmarPagamento(h.db, "b");
+      expect(total("a")).toMatchObject({ total: 100, desconto_pix: 5 });
+      expect(total("b")).toMatchObject({ total: 105, desconto_pix: 0 });
+    });
+
+    it("pedido sem desconto do Pix (antigo) mantém o total", async () => {
+      h.db = novoBanco([pedido("o1", { total: 100 })]);
+      await confirmarPagamento(h.db, "o1", { pix: true });
+      expect(total("o1")).toMatchObject({ total: 100, status: "pago" });
+    });
+
+    it("confirmação em paralelo aplica o desconto uma única vez", async () => {
+      h.db = novoBanco([comDesconto()]);
+      await Promise.all([confirmarPagamento(h.db, "o1", { pix: true }), confirmarPagamento(h.db, "o1", { pix: true })]);
+      expect(total("o1").total).toBe(100);
+      expect(h.emitirNFe).toHaveBeenCalledTimes(1);
+    });
+  });
+});

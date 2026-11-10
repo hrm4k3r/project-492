@@ -24,12 +24,13 @@ const CustomLink = ({ title, link }) => (
 export default function NavBar() {
   const { user, profile } = useAuth();
   const { totalItens } = useCart();
-  const { freteGratisAcima, freteGratisRegioes } = useConfiguracoes();
+  const { freteGratisAcima, freteGratisRegioes, descontoPixPercentual } = useConfiguracoes();
   const categorias = useCategorias();
 
   const avisos = [
     "Entregamos para todo o Brasil",
     descreverFreteGratis({ geral: freteGratisAcima, regioes: freteGratisRegioes }, formatBRL),
+    descontoPixPercentual > 0 && `${descontoPixPercentual}% de desconto no Pix`,
   ].filter(Boolean);
 
   return (

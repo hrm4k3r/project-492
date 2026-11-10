@@ -5,6 +5,7 @@ import { supabase } from "../../../../config/supabase";
 import { invalidarConfiguracoes } from "../../../lib/useConfiguracoes";
 import { MOTOBOY_PADRAO } from "../../../lib/motoboy";
 import { REGIOES, normalizarRegioes } from "../../../lib/freteGratis";
+import { PIX_PERCENTUAL_PADRAO } from "../../../lib/pix";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faLink, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import AdminTitulo from "../components/AdminTitulo";
@@ -108,6 +109,7 @@ function ConexaoBling() {
 
 export default function AdminConfiguracoes() {
   const [freteGratis, setFreteGratis] = useState("");
+  const [descontoPix, setDescontoPix] = useState("");
   const [regioes, setRegioes] = useState({}); // { sudeste: "500" } em texto, vazio = usa o valor geral
   const [motoboyPreco, setMotoboyPreco] = useState("");
   const [motoboyCidade, setMotoboyCidade] = useState("");
@@ -120,6 +122,7 @@ export default function AdminConfiguracoes() {
       const { data } = await supabase.from("configuracoes").select("chave, valor");
       const mapa = Object.fromEntries((data ?? []).map((c) => [c.chave, c.valor]));
       setFreteGratis(String(mapa.frete_gratis_acima ?? 1000));
+      setDescontoPix(String(mapa.desconto_pix_percentual ?? PIX_PERCENTUAL_PADRAO));
       setRegioes(Object.fromEntries(Object.entries(normalizarRegioes(mapa.frete_gratis_regioes)).map(([k, v]) => [k, String(v)])));
       setMotoboyPreco(String(mapa.motoboy_preco ?? MOTOBOY_PADRAO.preco));
       setMotoboyCidade(String(mapa.motoboy_cidade ?? MOTOBOY_PADRAO.cidade));
@@ -134,6 +137,12 @@ export default function AdminConfiguracoes() {
 
     const frete = Number(freteGratis);
     const motoboy = Number(motoboyPreco);
+    const pix = Number(String(descontoPix).replace(",", "."));
+    if (!(pix >= 0 && pix <= 100)) {
+      setMensagem({ ok: false, texto: "O desconto do Pix deve ficar entre 0 e 100%." });
+      return;
+    }
+
     const regioesNum = {};
     for (const { id, nome } of REGIOES) {
       const texto = String(regioes[id] ?? "").trim().replace(",", ".");
@@ -160,6 +169,7 @@ export default function AdminConfiguracoes() {
     const { error } = await supabase.from("configuracoes").upsert([
       { chave: "frete_gratis_acima", valor: frete, updated_at: agora },
       { chave: "frete_gratis_regioes", valor: regioesNum, updated_at: agora },
+      { chave: "desconto_pix_percentual", valor: pix, updated_at: agora },
       { chave: "motoboy_preco", valor: motoboy, updated_at: agora },
       { chave: "motoboy_cidade", valor: motoboyCidade.trim(), updated_at: agora },
     ]);
@@ -218,6 +228,20 @@ export default function AdminConfiguracoes() {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section className={cardClass}>
+            <h2 className="font-display text-2xl font-semibold text-primary">Desconto no Pix</h2>
+            <p className="mt-1 text-sm text-primary/55">
+              Percentual de desconto para quem paga no Pix. Incide sobre os produtos (já com o cupom) e não sobre o
+              frete. Aparece na loja, no carrinho e na tela de pagamento. Use 0 para desativar.
+            </p>
+            <label htmlFor="descontoPix" className={`${labelClass} mt-5 block`}>Desconto no Pix (%)</label>
+            <input
+              id="descontoPix" type="number" min="0" max="100" step="0.1" required
+              value={descontoPix} onChange={(e) => setDescontoPix(e.target.value)}
+              className={`${inputClass} mt-1.5 max-w-[12rem]`}
+            />
           </section>
 
           <section className={cardClass}>

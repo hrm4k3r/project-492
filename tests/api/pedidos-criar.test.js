@@ -253,6 +253,36 @@ describe("POST /api/pedidos/criar", () => {
     });
   });
 
+  describe("desconto no Pix", () => {
+    it("grava quanto o Pix economiza (5% por padrão), mas o total do pedido continua cheio", async () => {
+      const r = await chamar(corpo()); // retirada, subtotal 100
+      expect(r.status).toBe(200);
+      expect(h.db.tabelas.orders[0]).toMatchObject({ total: 100, desconto_pix: 5 });
+    });
+
+    it("usa o percentual configurado no painel e 0 desliga", async () => {
+      h.db = novoBanco({ configuracoes: [{ chave: "desconto_pix_percentual", valor: 10 }] });
+      await chamar(corpo());
+      expect(h.db.tabelas.orders[0].desconto_pix).toBe(10);
+
+      h.db = novoBanco({ configuracoes: [{ chave: "desconto_pix_percentual", valor: 0 }] });
+      await chamar(corpo());
+      expect(h.db.tabelas.orders[0].desconto_pix).toBe(0);
+    });
+
+    it("incide sobre os produtos já com o cupom e nunca sobre o frete", async () => {
+      h.db = novoBanco({
+        rpc: { validate_coupon: () => [{ valid: true, discount_type: "percent", discount_value: 10, message: "ok" }] },
+      });
+      await chamar(corpo({ cupom: "bemvindo" })); // 100 - 10 = 90 -> 5% = 4,50
+      expect(h.db.tabelas.orders[0]).toMatchObject({ desconto: 10, total: 90, desconto_pix: 4.5 });
+
+      h.db = novoBanco();
+      await chamar(corpo({ tipoEntrega: "motoboy" })); // frete R$ 15 fora da base
+      expect(h.db.tabelas.orders[0]).toMatchObject({ frete: 15, total: 115, desconto_pix: 5 });
+    });
+  });
+
   it("recusa tipo de entrega desconhecido", async () => {
     expect((await chamar(corpo({ tipoEntrega: "drone" }))).status).toBe(400);
   });

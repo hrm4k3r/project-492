@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "@/lib/mercadopago";
 import { confirmarPagamento } from "@/lib/pedidos";
 import { assinaturaValida } from "@/lib/mpAssinatura";
+import { centavosEsperados } from "@/lib/pix";
 
 function supabaseAdmin() {
   return createClient(
@@ -43,7 +44,7 @@ export async function POST(request) {
 
     const { data: order } = await db
       .from("orders")
-      .select("id, total, status")
+      .select("id, total, desconto_pix, status")
       .eq("id", orderId)
       .single();
 
@@ -52,7 +53,7 @@ export async function POST(request) {
     }
 
     // Confere valor pago (±1 centavo para arredondamentos)
-    const expectedCents = Math.round(order.total * 100);
+    const expectedCents = centavosEsperados(order, payment);
     const paidCents = Math.round(Number(payment.transaction_amount) * 100);
 
     if (Math.abs(expectedCents - paidCents) > 1) {
@@ -62,7 +63,7 @@ export async function POST(request) {
       return Response.json({ ok: true });
     }
 
-    await confirmarPagamento(db, orderId);
+    await confirmarPagamento(db, orderId, { pix: payment.payment_method_id === "pix" });
 
     return Response.json({ ok: true });
   } catch (err) {

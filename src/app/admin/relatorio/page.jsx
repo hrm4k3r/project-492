@@ -53,7 +53,7 @@ export default function AdminRelatorio() {
         buscarTudo(() =>
           supabase
             .from("orders")
-            .select("id, status, subtotal, desconto, frete, total, created_at, profiles(full_name), order_items(titulo, quantidade, subtotal)")
+            .select("id, status, subtotal, desconto, desconto_pix, frete, total, created_at, profiles(full_name), order_items(titulo, quantidade, subtotal)")
             .gte("created_at", inicioDoDia(de))
             .lte("created_at", fimDoDia(ate))
             .order("created_at", { ascending: false })

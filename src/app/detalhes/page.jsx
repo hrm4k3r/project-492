@@ -13,6 +13,8 @@ import { useCart } from "../context/CartContext";
 import { ProdutoCard, ProdutoCardSkeleton } from "../components/ProdutoCard";
 import { formatBRL, nomeDaCategoria, whatsappLink } from "../../lib/loja";
 import { semOtimizar } from "../../lib/imagem";
+import { formatarTeor } from "../../lib/cerveja";
+import { useConfiguracoes } from "../../lib/useConfiguracoes";
 
 const isPremiado = (text = "") => /pr[eê]mio|premiad/i.test(text);
 
@@ -32,6 +34,7 @@ export default function Detalhes() {
   const id = searchParams.get("id");
 
   const { addItem } = useCart();
+  const { descontoPixPercentual } = useConfiguracoes();
   const [produto, setProduto] = useState(null);
   const [relacionados, setRelacionados] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +94,8 @@ export default function Detalhes() {
     ["Marca", produto.marca],
     ["País de origem", produto.pais],
     ["Estilo", produto.estilo],
+    ["Teor alcoólico", formatarTeor(produto.teor_alcoolico)],
+    ["Amargor (IBU)", produto.ibu != null ? String(produto.ibu) : ""],
   ].filter(([, valor]) => valor);
 
   return (
@@ -157,6 +162,11 @@ export default function Detalhes() {
             <p className="mt-4 text-lg leading-relaxed text-primary/70">{produto.shortdescription}</p>
           )}
           <p className="mt-6 font-display text-4xl font-semibold text-terracotta">{formatBRL(produto.valor)}</p>
+          {descontoPixPercentual > 0 && (
+            <p className="mt-1 text-sm font-medium text-olive">
+              {formatBRL(Math.round(Number(produto.valor) * (100 - descontoPixPercentual)) / 100)} no Pix ({descontoPixPercentual}% de desconto)
+            </p>
+          )}
           <p className="mt-1 text-sm text-primary/55">Pagamento por Pix ou cartão. Frete calculado no carrinho.</p>
 
           {produto.estoque != null && produto.estoque <= 0 ? (

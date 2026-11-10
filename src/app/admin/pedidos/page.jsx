@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../../config/supabase";
 import { formatBRL } from "../../../lib/loja";
 import { MOTOBOY_SERVICO } from "../../../lib/motoboy";
+import { valorNoPix } from "../../../lib/pix";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faLocationDot, faMagnifyingGlass, faStore } from "@fortawesome/free-solid-svg-icons";
 import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
@@ -222,7 +223,7 @@ export default function AdminPedidos() {
                 {pedido.status === "pendente" && (
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-gold/15 p-4">
                     <p className="text-sm text-primary/80">
-                      Recebeu <strong>{formatBRL(pedido.total)}</strong> por Pix deste cliente?
+                      Recebeu <strong>{formatBRL(pedido.payment_method === "pix" ? valorNoPix(pedido) : pedido.total)}</strong> por Pix deste cliente?
                     </p>
                     <button
                       onClick={() => atualizarStatus(pedido.id, "pago")}
@@ -288,6 +289,8 @@ export default function AdminPedidos() {
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-cardBorder pt-4 text-sm text-primary/65">
                   <p>
                     Subtotal {formatBRL(pedido.subtotal)} · Frete {formatBRL(pedido.frete)}
+                    {Number(pedido.desconto_pix) > 0 && pedido.status !== "pendente" &&
+                      ` · Desconto Pix -${formatBRL(pedido.desconto_pix)}`}
                     {Number(pedido.desconto) > 0 &&
                       ` · Desconto -${formatBRL(pedido.desconto)}${pedido.coupon_code ? ` (${pedido.coupon_code})` : ""}`}
                   </p>
