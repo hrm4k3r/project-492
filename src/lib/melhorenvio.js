@@ -5,6 +5,17 @@ import { createClient } from "@supabase/supabase-js";
 
 const INTEGRACAO_ID = "melhor_envio";
 
+export const ESCOPOS = [
+  "shipping-calculate",
+  "shipping-generate",
+  "shipping-tracking",
+  "shipping-checkout",
+  "shipping-print",
+  "orders-read",
+  "cart-read",
+  "cart-write",
+].join(" ");
+
 function supabaseAdmin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
@@ -14,7 +25,8 @@ export function urlAutorizacao(state) {
     client_id: process.env.MELHORENVIO_CLIENT_ID,
     redirect_uri: process.env.MELHORENVIO_REDIRECT_URI,
     response_type: "code",
-    scope: "shipping-calculate shipping-generate shipping-tracking cart-read cart-write",
+    // shipping-checkout paga a etiqueta, shipping-print baixa o PDF e orders-read lê o envio e o rastreio.
+    scope: ESCOPOS,
     state,
   });
   return `${process.env.MELHORENVIO_BASE_URL}/oauth/authorize?${params.toString()}`;
@@ -122,7 +134,12 @@ export async function chamarMelhorEnvio(caminho, { method = "GET", body } = {}) 
     const campos = data?.errors
       ? Object.entries(data.errors).map(([k, v]) => `${k}: ${[].concat(v).join(", ")}`).join("; ")
       : "";
-    const erro = new Error([data?.message || data?.error || `Melhor Envio erro ${res.status}`, campos].filter(Boolean).join(" — "));
+    const texto = [data?.message || data?.error || `Melhor Envio erro ${res.status}`, campos].filter(Boolean).join(" — ");
+    // 401/403: o token não tem a permissão (escopo) dessa ação. Reconectar renova as permissões.
+    const dica = res.status === 401 || res.status === 403
+      ? " Falta permissão na conexão com o Melhor Envio: reconecte em Admin > Frete (botão Reconectar) e tente de novo."
+      : "";
+    const erro = new Error(texto + dica);
     erro.status = res.status;
     throw erro;
   }
