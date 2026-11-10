@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus, faTrashCan, faFloppyDisk, faLink, faCheck, faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
+import { formatBRL } from "../../../lib/loja";
 import AdminTitulo from "../components/AdminTitulo";
 import { cardClass, inputClass, labelClass } from "../ui";
 
@@ -69,6 +70,115 @@ function ConexaoMelhorEnvio() {
         {status?.conectado ? "Reconectar" : "Conectar Melhor Envio"}
       </button>
     </div>
+  );
+}
+
+// Simula a cotação no Melhor Envio mostrando TODOS os serviços, inclusive os indisponíveis e o motivo.
+function SimuladorFrete() {
+  const [produtos, setProdutos] = useState([]);
+  const [produtoId, setProdutoId] = useState("");
+  const [quantidade, setQuantidade] = useState(1);
+  const [cep, setCep] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    supabase.from("produtos").select("id, produto").order("produto").then(({ data }) => {
+      setProdutos(data ?? []);
+      if (data?.[0]) setProdutoId(data[0].id);
+    });
+  }, []);
+
+  const simular = async () => {
+    setErro("");
+    setResultado(null);
+    setCarregando(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/melhorenvio/diagnostico", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+        body: JSON.stringify({ cep, itens: [{ id: produtoId, quantidade: Number(quantidade) || 1 }] }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setErro(data.error ?? "Não foi possível simular.");
+      else setResultado(data);
+    } catch {
+      setErro("Sem conexão.");
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  return (
+    <section className={`${cardClass} mt-6`}>
+      <h2 className="font-display text-2xl font-semibold text-primary">Simular frete</h2>
+      <p className="mt-1 max-w-2xl text-sm text-primary/60">
+        Mostra o que o Melhor Envio responde para um CEP, serviço por serviço, inclusive os que não aparecem no
+        carrinho e o motivo. Não compra nada.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
+        <div>
+          <label htmlFor="sim-produto" className={labelClass}>Produto</label>
+          <select id="sim-produto" value={produtoId} onChange={(e) => setProdutoId(e.target.value)} className={`${inputClass} mt-1.5`}>
+            {produtos.map((p) => <option key={p.id} value={p.id}>{p.produto}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="sim-qtd" className={labelClass}>Quantidade</label>
+          <input id="sim-qtd" type="number" min="1" max="99" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} className={`${inputClass} mt-1.5`} />
+        </div>
+        <div>
+          <label htmlFor="sim-cep" className={labelClass}>CEP de destino</label>
+          <input id="sim-cep" inputMode="numeric" placeholder="00000-000" value={cep} onChange={(e) => setCep(e.target.value)} className={`${inputClass} mt-1.5`} />
+        </div>
+        <button type="button" onClick={simular} disabled={carregando || !produtoId} className="btn-primary !py-3 text-xs disabled:opacity-60">
+          {carregando ? "Simulando..." : "Simular"}
+        </button>
+      </div>
+
+      {erro && <p className="mt-4 text-sm text-terracotta">{erro}</p>}
+
+      {resultado && (
+        <div className="mt-5 text-sm text-primary">
+          <p className="text-xs text-primary/55">
+            Origem: CEP {resultado.origem ?? "não configurado"} · Enviado ao Melhor Envio:{" "}
+            {resultado.enviado.map((e, i) => (
+              <span key={i}>{e.quantidade}x {e.pesoKg} kg, {e.altura}x{e.largura}x{e.comprimento} cm, seguro {formatBRL(e.seguro)}</span>
+            ))}
+          </p>
+          {resultado.servicos.length === 0 ? (
+            <p className="mt-3 text-terracotta">O Melhor Envio não devolveu nenhum serviço para esse CEP.</p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[480px] text-left">
+                <thead>
+                  <tr className="border-b border-cardBorder text-[11px] uppercase tracking-[0.14em] text-primary/50">
+                    <th className="py-2 pr-3 font-medium">Transportadora</th>
+                    <th className="py-2 pr-3 font-medium">Serviço</th>
+                    <th className="py-2 pr-3 text-right font-medium">Preço</th>
+                    <th className="py-2 pr-3 text-right font-medium">Prazo</th>
+                    <th className="py-2 font-medium">Situação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultado.servicos.map((sv, i) => (
+                    <tr key={i} className="border-b border-cardBorder/60">
+                      <td className="py-2 pr-3">{sv.empresa}</td>
+                      <td className="py-2 pr-3">{sv.servico}</td>
+                      <td className="py-2 pr-3 text-right">{sv.preco != null ? formatBRL(sv.preco) : "—"}</td>
+                      <td className="py-2 pr-3 text-right">{sv.prazoDias != null ? `${sv.prazoDias} d` : "—"}</td>
+                      <td className={`py-2 ${sv.erro ? "text-terracotta" : "text-olive"}`}>{sv.erro ?? "Disponível"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -147,6 +257,8 @@ export default function AdminFrete() {
       <div className="mt-8">
         <ConexaoMelhorEnvio />
       </div>
+
+      <SimuladorFrete />
 
       <h2 className="mt-10 font-display text-3xl font-semibold text-primary">Tabela por região</h2>
       <p className="mt-2 max-w-2xl text-sm text-primary/60">

@@ -15,8 +15,9 @@ async function freteReserva(supabase, cepDestino) {
   return [{ servico: match.regiao, preco: Number(match.preco), prazoDias: match.prazo_dias, origem: "tabela" }];
 }
 
-// itens: [{ id, quantidade }]. Retorna { opcoes, aviso? } com preços calculados no servidor.
-export async function cotarFrete(supabase, cep, itens) {
+// Monta a lista de produtos (peso, medidas, seguro) que o Melhor Envio recebe, lendo do banco.
+// Usada pela cotação do carrinho e pelo simulador do painel, para as duas darem o mesmo resultado.
+export async function produtosParaMelhorEnvio(supabase, itens) {
   const ids = itens.map((i) => i.id);
   const { data: produtos, error: produtosError } = await supabase
     .from("produtos")
@@ -27,7 +28,7 @@ export async function cotarFrete(supabase, cep, itens) {
     throw new Error("Não foi possível carregar os produtos do carrinho.");
   }
 
-  const produtosMelhorEnvio = itens.map((item) => {
+  return itens.map((item) => {
     const produto = produtos.find((p) => p.id === item.id);
     return {
       id: item.id,
@@ -39,6 +40,11 @@ export async function cotarFrete(supabase, cep, itens) {
       quantity: item.quantidade,
     };
   });
+}
+
+// itens: [{ id, quantidade }]. Retorna { opcoes, aviso? } com preços calculados no servidor.
+export async function cotarFrete(supabase, cep, itens) {
+  const produtosMelhorEnvio = await produtosParaMelhorEnvio(supabase, itens);
 
   try {
     const opcoes = await calcularFrete({ cepDestino: cep, produtos: produtosMelhorEnvio });
