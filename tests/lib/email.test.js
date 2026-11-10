@@ -7,6 +7,7 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 import {
   escaparHtml,
   destinosDoAviso,
+  templateNfeEmitida,
   enviarEmailConfirmacaoPedido,
   enviarEmailAtualizacaoStatus,
   enviarEmailPedidoRecebido,
@@ -188,5 +189,32 @@ describe("destinosDoAviso", () => {
     expect(destinosDoAviso("a@x.com\nb@y.com")).toEqual(["a@x.com", "b@y.com"]);
     expect(destinosDoAviso("")).toEqual([]);
     expect(destinosDoAviso(undefined)).toEqual([]);
+  });
+});
+
+describe("templateNfeEmitida", () => {
+  it("mostra número, chave e os botões do DANFE e do XML", () => {
+    const html = templateNfeEmitida({
+      numeroPedido: "#abc12345",
+      nfe: { numero: "2", serie: "1", chave: "3".repeat(44), linkDanfe: "https://bling.test/danfe/1", linkXml: "https://bling.test/xml/1" },
+    });
+    expect(html).toContain("#abc12345");
+    expect(html).toContain("Número: <strong>2</strong>");
+    expect(html).toContain("3".repeat(44));
+    expect(html).toContain('href="https://bling.test/danfe/1"');
+    expect(html).toContain("Baixar XML");
+  });
+
+  it("não coloca link que não seja http(s) e avisa quando os links não vieram", () => {
+    const html = templateNfeEmitida({ numeroPedido: "#x", nfe: { linkDanfe: "javascript:alert(1)", linkXml: null } });
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("Abrir DANFE");
+    expect(html).toContain("não vieram do Bling");
+  });
+
+  it("escapa texto vindo de fora", () => {
+    const html = templateNfeEmitida({ numeroPedido: "#x", nfe: { numero: "<b>9</b>" } });
+    expect(html).not.toContain("<b>9</b>");
+    expect(html).toContain("&lt;b&gt;9&lt;/b&gt;");
   });
 });

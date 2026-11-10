@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { criarBanco } from "../helpers/fakeSupabase";
 
-const h = vi.hoisted(() => ({ db: null, pagamento: null }));
+const h = vi.hoisted(() => ({ db: null, pagamento: null, avisoNfe: vi.fn() }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => h.db }));
 vi.mock("../../src/lib/mercadopago", () => ({ buscarPagamento: async () => h.pagamento }));
+vi.mock("../../src/lib/email", () => ({ enviarEmailNfeParaLoja: (...a) => h.avisoNfe(...a) }));
 
 import { emitirNFe } from "../../src/lib/bling";
 
@@ -33,6 +34,7 @@ function bling(extra = {}) {
 }
 
 beforeEach(() => {
+  h.avisoNfe.mockReset().mockResolvedValue();
   chamadas = [];
   h.pagamento = { payment_type_id: "bank_transfer" };
   process.env.BLING_FORMA_PGTO_PIX = "777";
@@ -121,6 +123,32 @@ describe("emitirNFe", () => {
     expect(chamadas[0].corpo.contato.email).toBeUndefined();
     expect(chamadas[1].url).toContain("enviarEmail=false");
     expect(ordem()).toMatchObject({ nfe_status: "5" });
+  });
+
+  it("nota autorizada avisa a loja por e-mail com número, chave e links do DANFE e do XML", async () => {
+    rotas["GET /nfe/123"] = {
+      status: 200,
+      corpo: { data: { situacao: 5, numero: 2, serie: 1, chaveAcesso: "3".repeat(44), linkDanfe: "https://bling.test/danfe/123", xml: "https://bling.test/xml/123" } },
+    };
+    await emitirNFe("o1");
+    expect(h.avisoNfe).toHaveBeenCalledTimes(1);
+    expect(h.avisoNfe).toHaveBeenCalledWith({
+      orderId: "o1",
+      nfe: { numero: "2", serie: "1", chave: "3".repeat(44), linkDanfe: "https://bling.test/danfe/123", linkXml: "https://bling.test/xml/123" },
+    });
+  });
+
+  it("nota ainda não autorizada, ou aviso que falha, não derruba a emissão", async () => {
+    rotas["GET /nfe/123"] = { status: 200, corpo: { data: { situacao: 1 } } };
+    await emitirNFe("o1");
+    expect(h.avisoNfe).not.toHaveBeenCalled();
+
+    h.db.tabelas.orders[0].nfe_id = null;
+    h.db.tabelas.orders[0].nfe_status = null;
+    rotas["GET /nfe/123"] = { status: 200, corpo: { data: { situacao: 5 } } };
+    h.avisoNfe.mockRejectedValue(new Error("resend fora do ar"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(emitirNFe("o1")).resolves.toMatchObject({ situacao: "5" });
   });
 
   it("não cria uma segunda nota: depois de falha no envio, só reenvia a mesma", async () => {

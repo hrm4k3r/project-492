@@ -1,6 +1,7 @@
 // ATENÇÃO: server-only. Nunca importe em componentes client.
 import { createClient } from "@supabase/supabase-js";
 import { buscarPagamento } from "./mercadopago";
+import { enviarEmailNfeParaLoja } from "./email";
 
 // OAuth (autorizar/token) fica em www; as rotas de dados (nfe, contatos...) ficam em api.
 const BLING_BASE = "https://www.bling.com.br/Api/v3";
@@ -380,14 +381,33 @@ async function emitir(supabase, orderId) {
   // Situação depois do envio. A transmissão à Sefaz pode levar um tempo, então falha aqui não
   // invalida o envio: guarda "enviada" e o lojista confere no Bling.
   let situacao = "enviada";
+  let dadosNota = null;
   try {
     const consulta = await chamarBling(accessToken, `/nfe/${encodeURIComponent(nfeId)}`);
     situacao = String(consulta?.data?.situacao ?? "enviada");
+    dadosNota = consulta?.data ?? null;
   } catch {
     // mantém "enviada"
   }
 
   await supabase.from("orders").update({ nfe_status: situacao, nfe_erro: null }).eq("id", orderId);
+
+  // Nota autorizada (situação 5): avisa a loja por e-mail com os links do DANFE e do XML. Falha de
+  // e-mail nunca desfaz a emissão. Roda uma vez só, porque nota já enviada não passa por aqui de novo.
+  if (situacao === "5") {
+    await Promise.resolve(
+      enviarEmailNfeParaLoja({
+        orderId,
+        nfe: {
+          numero: dadosNota?.numero ? String(dadosNota.numero) : "",
+          serie: dadosNota?.serie ? String(dadosNota.serie) : "",
+          chave: String(dadosNota?.chaveAcesso ?? ""),
+          linkDanfe: dadosNota?.linkDanfe ?? dadosNota?.linkPdf ?? null,
+          linkXml: dadosNota?.xml ?? null,
+        },
+      })
+    ).catch((err) => console.error("Aviso de NF-e à loja:", err.message));
+  }
   return { id: nfeId, situacao };
 }
 

@@ -463,6 +463,55 @@ export function templateEstoqueBaixo(produtos) {
   });
 }
 
+// Só aceita link http(s): o endereço vem do Bling, mas vai para um e-mail, então nunca confiamos às cegas.
+const linkSeguro = (url) => (/^https?:\/\//i.test(String(url ?? "")) ? String(url) : null);
+
+// Aviso à loja de que a NF-e do pedido foi autorizada, com os links do DANFE (PDF) e do XML.
+export function templateNfeEmitida({ numeroPedido, nfe }) {
+  const botao = (url, texto) =>
+    `<a href="${escaparHtml(url)}" style="display:inline-block;margin:0 8px 8px 0;padding:10px 18px;background:#5A2A14;color:#F7E3C5;text-decoration:none;border-radius:6px;font-size:14px;">${texto}</a>`;
+  const danfe = linkSeguro(nfe.linkDanfe);
+  const xml = linkSeguro(nfe.linkXml);
+
+  return htmlBase({
+    nome: "equipe",
+    titulo: "NF-e autorizada",
+    conteudo: `
+      <p style="margin:0 0 16px;font-size:15px;color:#5A2A14;">
+        A nota fiscal do pedido <strong>${escaparHtml(numeroPedido)}</strong> foi autorizada pela Sefaz.
+      </p>
+      <div style="background:#F8F1E4;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;color:#5A2A14;">
+        ${nfe.numero ? `<p style="margin:0;">Número: <strong>${escaparHtml(nfe.numero)}</strong>${nfe.serie ? ` · série ${escaparHtml(nfe.serie)}` : ""}</p>` : ""}
+        ${nfe.chave ? `<p style="margin:6px 0 0;word-break:break-all;color:#888;font-size:12px;">Chave de acesso: ${escaparHtml(nfe.chave)}</p>` : ""}
+      </div>
+      <p style="margin:0 0 20px;">
+        ${danfe ? botao(danfe, "Abrir DANFE (PDF)") : ""}${xml ? botao(xml, "Baixar XML") : ""}
+      </p>
+      <p style="margin:0;font-size:13px;color:#888;">
+        ${danfe || xml ? "" : "Os links não vieram do Bling: abra a nota em Vendas &gt; Notas Fiscais no Bling. "}Veja o pedido em
+        <a href="${SITE}/admin/pedidos" style="color:#B85C38;">Admin &gt; Pedidos</a>.
+      </p>`,
+    rodape: "Aviso de nota fiscal · Curadoria da Mesa",
+  });
+}
+
+// Só envia se EMAIL_AVISO_LOJA estiver definido. Nunca lança erro.
+export async function enviarEmailNfeParaLoja({ orderId, nfe }) {
+  const destinos = destinosDoAviso();
+  if (destinos.length === 0) return;
+  const numeroPedido = `#${String(orderId).slice(0, 8)}`;
+
+  try {
+    await enviar({
+      to: destinos,
+      subject: `NF-e autorizada — pedido ${numeroPedido}${nfe.numero ? ` (nº ${nfe.numero})` : ""}`,
+      html: templateNfeEmitida({ numeroPedido, nfe }),
+    });
+  } catch (err) {
+    console.error("Erro ao enviar aviso de NF-e para a loja:", err);
+  }
+}
+
 // Só envia se EMAIL_AVISO_LOJA estiver definido. Nunca lança erro.
 export async function enviarEmailEstoqueBaixo(produtos) {
   const destinos = destinosDoAviso();
