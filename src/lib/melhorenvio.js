@@ -130,7 +130,9 @@ export async function calcularFrete({ cepDestino, produtos }) {
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.message || "Erro ao calcular frete no Melhor Envio.");
+    const erro = new Error(data?.message || "Erro ao calcular frete no Melhor Envio.");
+    erro.status = res.status; // 422 = o Melhor Envio recusou os dados (ex.: CEP inexistente)
+    throw erro;
   }
   return data;
 }

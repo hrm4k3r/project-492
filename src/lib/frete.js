@@ -61,6 +61,10 @@ export async function cotarFrete(supabase, cep, itens) {
     if (validas.length > 0) return { opcoes: validas };
     throw new Error("Nenhuma opção de frete disponível para esse CEP.");
   } catch (error) {
+    // CEP que o Melhor Envio recusa (422) não é pane: avisa o cliente em vez de cobrar a tabela fixa.
+    if (error.status === 422) {
+      throw new Error("Não encontramos esse CEP. Confira o número e tente de novo.");
+    }
     console.error("Frete via Melhor Envio falhou, usando tabela fixa:", error.message);
     const opcoesReserva = await freteReserva(supabase, cep);
     return { opcoes: opcoesReserva, aviso: "Frete estimado (cálculo automático indisponível)." };

@@ -65,6 +65,7 @@ function useFreteReal(cep, itens) {
         setOpcoes(data.opcoes ?? []);
         setSelecionada(data.opcoes?.[0] ?? null);
         if (data.aviso) setAviso(data.aviso);
+        else if (!res.ok && data.error) setAviso(data.error);
       } catch {
         if (!cancelado) {
           setOpcoes([]);
