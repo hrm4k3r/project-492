@@ -5,11 +5,11 @@ import { faInstagram } from "@fortawesome/free-brands-svg-icons";
 import { LOJA } from "../../../lib/loja";
 
 const fotos = [
-  { src: "/fotos/ref-cerveja-ambar.jpg", alt: "Cerveja âmbar em taça" },
+  { src: "/fotos/cerveja-abroba.jpg", alt: "Cerveja âmbar em taça" },
   { src: "/fotos/ref-queijo-geleia.jpg", alt: "Queijo com geleia e cerveja belga" },
-  { src: "/fotos/ref-cerveja-zot.jpg", alt: "Cerveja belga em taça" },
-  { src: "/fotos/ref-tabua.jpg", alt: "Tábua de frios e pães" },
-  { src: "/fotos/ref-frutas-vermelhas.jpg", alt: "Cerveja de frutas vermelhas" },
+  { src: "/fotos/cerveja-zot.jpg", alt: "Cerveja belga em taça" },
+  { src: "/fotos/tabua-pesto.jpg", alt: "Tábua de frios e pães" },
+  { src: "/fotos/cerveja-trem-do-amor.jpg", alt: "Cerveja de frutas vermelhas" },
 ];
 
 export default function InstagramFaixa() {

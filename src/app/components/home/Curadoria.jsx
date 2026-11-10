@@ -24,8 +24,8 @@ export default function Curadoria() {
     <section className="bg-brand py-20 text-cream md:py-28">
       <div className="container-page grid items-center gap-14 md:grid-cols-2">
         <div className="relative mx-auto h-[380px] w-full max-w-sm md:h-[500px]">
-          <Arco src="/fotos/ref-casal.jpg" alt="Clientes brindando com vinho na loja" posicao="object-bottom" className="absolute left-0 top-0 h-[80%] w-[60%]" />
-          <Arco src="/fotos/ref-tabua.jpg" alt="Tábua com pães, patês e embutidos" className="absolute bottom-0 right-0 h-[60%] w-[48%]" />
+          <Arco src="/fotos/casal-loja.jpg" alt="Clientes brindando com vinho na loja" posicao="object-bottom" className="absolute left-0 top-0 h-[80%] w-[60%]" />
+          <Arco src="/fotos/tabua-pesto.jpg" alt="Tábua com pães, patês e embutidos" className="absolute bottom-0 right-0 h-[60%] w-[48%]" />
         </div>
 
         <div className="text-center md:text-left">

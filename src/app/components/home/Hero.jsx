@@ -75,13 +75,13 @@ export default function Hero() {
 
         <div className="relative mx-auto h-[400px] w-full max-w-[22rem] md:h-[560px] md:max-w-md">
           <Arco
-            src="/fotos/ref-vinho.jpg"
+            src="/fotos/vinho-eliodora.jpg"
             alt="Taça de vinho tinto ao lado da garrafa"
             prioridade
             className="absolute right-0 top-0 h-[78%] w-[62%]"
           />
           <Arco
-            src="/fotos/ref-cerveja-belga.jpg"
+            src="/fotos/cerveja-delirium.jpg"
             alt="Cerveja belga servida em taça"
             className="absolute bottom-0 left-0 h-[58%] w-[50%]"
           />

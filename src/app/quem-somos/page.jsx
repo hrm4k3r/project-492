@@ -83,12 +83,12 @@ export default function QuemSomos() {
 
           <div className="relative mx-auto h-[420px] w-full max-w-sm md:h-[520px]">
             <Arco
-              src="/fotos/ref-vinho.jpg"
+              src="/fotos/vinho-eliodora.jpg"
               alt="Taça de vinho tinto ao lado da garrafa"
               className="absolute right-0 top-0 h-[78%] w-[62%]"
             />
             <Arco
-              src="/fotos/ref-cerveja-belga.jpg"
+              src="/fotos/cerveja-delirium.jpg"
               alt="Cerveja belga servida em taça"
               className="absolute bottom-0 left-0 h-[56%] w-[50%]"
             />
@@ -100,7 +100,7 @@ export default function QuemSomos() {
         <div className="container-page grid items-center gap-14 md:grid-cols-[0.8fr_1.2fr]">
           <div className="mx-auto w-full max-w-sm">
             <Arco
-              src="/fotos/ref-casal.jpg"
+              src="/fotos/casal-loja.jpg"
               alt="Lidiane e Alessandro, donos da Curadoria da Mesa, brindando com vinho"
               posicao="object-bottom"
               className="aspect-[3/4.2] w-full"
