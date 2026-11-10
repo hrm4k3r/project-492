@@ -271,6 +271,9 @@ create table if not exists orders (
   nfe_erro text,                        -- último erro da emissão (mostrado em Admin > Pedidos)
   payment_method text check (payment_method in ('pix')),
   desconto_pix numeric(10, 2) not null default 0 check (desconto_pix >= 0), -- desconto do Pix, aplicado ao total quando o Pix é confirmado
+  etiqueta_id text,                     -- envio no Melhor Envio (gravado ao criar o carrinho)
+  etiqueta_status text check (etiqueta_status is null or etiqueta_status in ('carrinho', 'comprando', 'paga', 'gerada')),
+  etiqueta_erro text,
   payment_details jsonb,
   created_at timestamptz not null default now()
 );

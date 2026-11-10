@@ -378,6 +378,15 @@ async function emitir(supabase, orderId) {
 }
 
 // Diagnóstico de permissões: tenta uma leitura em cada área e devolve o código HTTP de cada uma.
+// Chave de acesso (44 dígitos) de uma NF-e já criada no Bling, ou null se ainda não existe.
+export async function chaveDaNFe(nfeId) {
+  if (!nfeId) return null;
+  const token = await obterAccessTokenValido();
+  const resposta = await chamarBling(token, `/nfe/${nfeId}`);
+  const chave = String(resposta?.data?.chaveAcesso ?? "").replace(/\D/g, "");
+  return chave.length === 44 ? chave : null;
+}
+
 export async function diagnosticarPermissoes() {
   const accessToken = await obterAccessTokenValido();
   const testes = ["/nfe?limite=1", "/contatos?limite=1", "/produtos?limite=1"];

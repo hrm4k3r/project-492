@@ -102,6 +102,33 @@ async function obterAccessTokenValido() {
   return novosTokens.access_token;
 }
 
+// Chamada autenticada à API do Melhor Envio (carrinho, checkout, etiqueta, rastreio...).
+// O erro leva o texto do Melhor Envio (e os campos recusados) para o painel mostrar ao lojista.
+export async function chamarMelhorEnvio(caminho, { method = "GET", body } = {}) {
+  const accessToken = await obterAccessTokenValido();
+  const res = await fetch(`${process.env.MELHORENVIO_BASE_URL}/api/v2${caminho}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "User-Agent": "Curadoria da Mesa (hebertdev82@gmail.com)",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(25000),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const campos = data?.errors
+      ? Object.entries(data.errors).map(([k, v]) => `${k}: ${[].concat(v).join(", ")}`).join("; ")
+      : "";
+    const erro = new Error([data?.message || data?.error || `Melhor Envio erro ${res.status}`, campos].filter(Boolean).join(" — "));
+    erro.status = res.status;
+    throw erro;
+  }
+  return data;
+}
+
 /**
  * Calcula opções de frete para um destino, a partir do CEP de origem
  * (loja) e uma lista de produtos (peso/dimensões).

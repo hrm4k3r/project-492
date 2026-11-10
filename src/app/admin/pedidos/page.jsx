@@ -29,6 +29,7 @@ export default function AdminPedidos() {
   const [busca, setBusca] = useState("");
   const [salvandoId, setSalvandoId] = useState(null);
   const [emitindoId, setEmitindoId] = useState(null);
+  const [etiquetandoId, setEtiquetandoId] = useState(null);
 
   useEffect(() => {
     const inicial = new URLSearchParams(window.location.search).get("status");
@@ -108,6 +109,87 @@ export default function AdminPedidos() {
       setPedidos((lista) => lista.map((p) => (p.id === pedido.id ? { ...p, ...atualizado } : p)));
     }
     if (!resp.ok) alert("NF-e não emitida: " + (dados.error ?? resp.statusText));
+  };
+
+  // Chama a rota de etiqueta (só admin) e devolve { ok, dados }.
+  const chamarEtiqueta = async (orderId, acao) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch("/api/melhorenvio/etiqueta", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ orderId, acao }),
+    });
+    const dados = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, dados };
+  };
+
+  const recarregarEtiqueta = async (id) => {
+    const { data } = await supabase
+      .from("orders")
+      .select("etiqueta_id, etiqueta_status, etiqueta_erro, codigo_rastreio")
+      .eq("id", id)
+      .maybeSingle();
+    if (data) setPedidos((lista) => lista.map((p) => (p.id === id ? { ...p, ...data } : p)));
+  };
+
+  // Gera a etiqueta em duas etapas: prepara (não cobra) e só compra depois de o lojista confirmar o valor.
+  const gerarEtiqueta = async (pedido) => {
+    setEtiquetandoId(pedido.id);
+    try {
+      const previa = await chamarEtiqueta(pedido.id, "preparar");
+      await recarregarEtiqueta(pedido.id);
+      if (!previa.ok) {
+        alert("Não foi possível preparar a etiqueta: " + (previa.dados.error ?? "erro desconhecido"));
+        return;
+      }
+      const { servico, preco, prazoDias } = previa.dados;
+      const confirmou = confirm(
+        `Comprar a etiqueta?
+
+${servico}${prazoDias ? ` · ${prazoDias} dias` : ""}
+Valor: ${formatBRL(preco)}
+
+O valor sai do saldo do Melhor Envio e não pode ser desfeito aqui.`
+      );
+      if (!confirmou) return;
+
+      const compra = await chamarEtiqueta(pedido.id, "comprar");
+      await recarregarEtiqueta(pedido.id);
+      if (!compra.ok) {
+        alert("Etiqueta não comprada: " + (compra.dados.error ?? "erro desconhecido"));
+        return;
+      }
+      alert(
+        compra.dados.codigoRastreio
+          ? `Etiqueta gerada! Código de rastreio: ${compra.dados.codigoRastreio}`
+          : "Etiqueta gerada! O código de rastreio pode levar alguns minutos: use \"Atualizar rastreio\"."
+      );
+    } finally {
+      setEtiquetandoId(null);
+    }
+  };
+
+  const imprimirEtiqueta = async (pedido) => {
+    const janela = window.open("", "_blank"); // abre antes do await para o navegador não bloquear
+    setEtiquetandoId(pedido.id);
+    const r = await chamarEtiqueta(pedido.id, "imprimir");
+    setEtiquetandoId(null);
+    if (r.ok && r.dados.url) {
+      if (janela) janela.location.href = r.dados.url;
+      else window.location.href = r.dados.url;
+    } else {
+      janela?.close();
+      alert("Não foi possível abrir a etiqueta: " + (r.dados.error ?? "erro desconhecido"));
+    }
+  };
+
+  const atualizarRastreio = async (pedido) => {
+    setEtiquetandoId(pedido.id);
+    const r = await chamarEtiqueta(pedido.id, "rastreio");
+    await recarregarEtiqueta(pedido.id);
+    setEtiquetandoId(null);
+    if (!r.ok) alert("Não foi possível atualizar o rastreio: " + (r.dados.error ?? "erro desconhecido"));
+    else if (!r.dados.codigoRastreio) alert("O código de rastreio ainda não foi liberado. Tente de novo em alguns minutos.");
   };
 
   const contagem = useMemo(() => {
@@ -256,6 +338,50 @@ export default function AdminPedidos() {
                         {emitindoId === pedido.id ? "Emitindo..." : pedido.nfe_erro ? "Tentar de novo" : "Emitir NF-e"}
                       </button>
                     )}
+                  </div>
+                )}
+
+                {["pago", "preparando", "enviado"].includes(pedido.status) &&
+                  !retirada && pedido.frete_servico && pedido.frete_servico !== MOTOBOY_SERVICO && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cardBorder bg-white p-4 text-sm">
+                    <div className={pedido.etiqueta_erro && pedido.etiqueta_status !== "gerada" ? "text-terracotta" : "text-primary/75"}>
+                      {pedido.etiqueta_status === "gerada" ? (
+                        <>
+                          <strong className="text-primary">Etiqueta gerada</strong> ({pedido.frete_servico})
+                          {pedido.codigo_rastreio ? <> · rastreio <span className="select-all font-medium">{pedido.codigo_rastreio}</span></> : " · aguardando o código de rastreio"}
+                        </>
+                      ) : pedido.etiqueta_status === "paga" ? (
+                        <><strong>Etiqueta paga, mas não gerada.</strong> {pedido.etiqueta_erro} Clique em Gerar etiqueta para concluir (não cobra de novo).</>
+                      ) : pedido.etiqueta_status === "comprando" ? (
+                        <><strong className="text-primary">Comprando a etiqueta...</strong> Atualize a página em instantes.</>
+                      ) : pedido.etiqueta_erro ? (
+                        <><strong>Etiqueta não gerada:</strong> {pedido.etiqueta_erro}</>
+                      ) : (
+                        <><strong className="text-primary">Etiqueta do Melhor Envio</strong> · {pedido.frete_servico}{!pedido.nfe_status && " · emita a NF-e primeiro"}</>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {pedido.etiqueta_status === "gerada" ? (
+                        <>
+                          <button onClick={() => imprimirEtiqueta(pedido)} disabled={etiquetandoId === pedido.id} className="btn-outline !py-2 text-xs disabled:opacity-60">
+                            Imprimir etiqueta
+                          </button>
+                          {!pedido.codigo_rastreio && (
+                            <button onClick={() => atualizarRastreio(pedido)} disabled={etiquetandoId === pedido.id} className="btn-outline !py-2 text-xs disabled:opacity-60">
+                              Atualizar rastreio
+                            </button>
+                          )}
+                        </>
+                      ) : pedido.etiqueta_status !== "comprando" && (
+                        <button
+                          onClick={() => gerarEtiqueta(pedido)}
+                          disabled={etiquetandoId === pedido.id || !pedido.nfe_status}
+                          className="btn-outline !py-2 text-xs disabled:opacity-60"
+                        >
+                          {etiquetandoId === pedido.id ? "Aguarde..." : "Gerar etiqueta"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
